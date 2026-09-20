@@ -2,6 +2,8 @@ package ies.belgrano.lotes.exception;
 
 import ies.belgrano.lotes.dto.response.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -17,6 +19,17 @@ import java.util.List;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(RestExceptionHandler.class);
+
+	@ExceptionHandler(RuntimeException.class)
+	public ResponseEntity<ApiErrorResponse> handleErrorTecnico(
+			RuntimeException exception, HttpServletRequest request) {
+		LOGGER.error("Error inesperado al consultar la ficha pública", exception);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiErrorResponse(
+				Instant.now(), 500, "ERROR_INTERNO",
+				"No se pudo completar la consulta", request.getRequestURI(), List.of()));
+	}
 
 	@ExceptionHandler(BindException.class)
 	public ResponseEntity<ApiErrorResponse> handleBindException(
