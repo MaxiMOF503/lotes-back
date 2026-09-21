@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:8080
+
+### 200: ficha demostrativa por identificador, incluye dondeConsultar
+GET {{baseUrl}}/api/public/v1/lotes/ficha?identificador=LOT-DEMO-001
+Accept: application/json
+
+### 200: misma ficha por coordenadas exactas
+GET {{baseUrl}}/api/public/v1/lotes/ficha?latitud=-32.8895&longitud=-68.8458
+Accept: application/json
+
+### 400 CONSULTA_INVALIDA: sin criterio
+GET {{baseUrl}}/api/public/v1/lotes/ficha
+Accept: application/json
+
+### 400 CONSULTA_INVALIDA: criterios combinados
+GET {{baseUrl}}/api/public/v1/lotes/ficha?identificador=LOT-DEMO-001&latitud=-32.8895&longitud=-68.8458
+Accept: application/json
+
+### 400 CONSULTA_INVALIDA: coordenada incompleta
+GET {{baseUrl}}/api/public/v1/lotes/ficha?latitud=-32.8895
+Accept: application/json
+
+### 400 CONSULTA_INVALIDA: latitud fuera de rango
+GET {{baseUrl}}/api/public/v1/lotes/ficha?latitud=91&longitud=-68.8458
+Accept: application/json
+
+### 400 CONSULTA_INVALIDA: valor no numérico
+GET {{baseUrl}}/api/public/v1/lotes/ficha?latitud=abc&longitud=-68.8458
+Accept: application/json
+
+### 404 LOTE_NO_ENCONTRADO: identificador inexistente en el dataset demo
+GET {{baseUrl}}/api/public/v1/lotes/ficha?identificador=NO-EXISTE
+Accept: application/json
+
+### 404 LOTE_NO_ENCONTRADO: punto cercano sin coincidencia exacta en el dataset demo
+GET {{baseUrl}}/api/public/v1/lotes/ficha?latitud=-32.8896&longitud=-68.8458
+Accept: application/json

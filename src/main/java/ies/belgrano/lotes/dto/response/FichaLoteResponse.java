@@ -9,5 +9,7 @@ public record FichaLoteResponse(
 		ZonificacionResponse zonificacion,
 		ElectricidadResponse infraestructuraElectrica,
 		AguaResponse coberturaAgua,
-		String advertencia) {
+		String advertencia,
+		@Schema(description = "Orientación del departamento asociado; null cuando el lote no tiene departamento")
+		DondeConsultarResponse dondeConsultar) {
 }

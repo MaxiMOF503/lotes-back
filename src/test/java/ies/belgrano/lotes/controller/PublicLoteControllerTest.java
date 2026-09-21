@@ -134,6 +134,7 @@ class PublicLoteControllerTest {
 						"Residencial R2 (dato simulado)", false, procedencia),
 				new ElectricidadResponse(320.0, true, procedencia),
 				new AguaResponse(true, procedencia),
-				LoteConsultaService.ADVERTENCIA);
+				LoteConsultaService.ADVERTENCIA,
+				null);
 	}
 }
