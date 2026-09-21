@@ -4,6 +4,7 @@ import ies.belgrano.lotes.dto.response.AguaResponse;
 import ies.belgrano.lotes.dto.response.CoordenadasResponse;
 import ies.belgrano.lotes.dto.response.CriterioConsultaResponse;
 import ies.belgrano.lotes.dto.response.DatosLoteResponse;
+import ies.belgrano.lotes.dto.response.DondeConsultarResponse;
 import ies.belgrano.lotes.dto.response.ElectricidadResponse;
 import ies.belgrano.lotes.dto.response.FichaLoteResponse;
 import ies.belgrano.lotes.dto.response.ProcedenciaResponse;
@@ -65,7 +66,21 @@ public class LoteConsultaService {
 				zonificacion,
 				electricidad,
 				agua,
-				ADVERTENCIA);
+				ADVERTENCIA,
+				dondeConsultar(lote));
+	}
+
+	private DondeConsultarResponse dondeConsultar(LoteEntity lote) {
+		var departamento = lote.getDepartamento();
+		if (departamento == null) {
+			return null;
+		}
+		return new DondeConsultarResponse(
+				departamento.getNombre(),
+				departamento.getContactoOficial(),
+				departamento.getDireccionOficina(),
+				departamento.getComoConsultar(),
+				new ProcedenciaResponse("SIMULADO", departamento.getFuenteDatos(), false));
 	}
 
 	private LoteEntity buscar(ConsultaLoteCriteria criteria) {

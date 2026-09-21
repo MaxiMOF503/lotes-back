@@ -30,16 +30,24 @@ public class PublicLoteController {
 	}
 
 	@GetMapping("/ficha")
-	@Operation(summary = "Consultar la ficha demostrativa de un lote")
+	@Operation(summary = "Consultar la ficha demostrativa de un lote",
+			description = "Informar identificador o ambas coordenadas WGS84, nunca ambos criterios. "
+					+ "La consulta por coordenadas requiere coincidencia exacta. "
+					+ "Cada sección conserva su procedencia; los datos actuales son simulados y no oficiales.")
 	@ApiResponses({
-			@ApiResponse(responseCode = "200", description = "Lote demostrativo encontrado"),
+			@ApiResponse(responseCode = "200", description = "Lote demostrativo encontrado",
+					content = @Content(schema = @Schema(implementation = FichaLoteResponse.class))),
 			@ApiResponse(
 					responseCode = "400",
-					description = "Criterio de consulta inválido",
+					description = "CONSULTA_INVALIDA: parámetros inválidos o incompatibles",
 					content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
 			@ApiResponse(
 					responseCode = "404",
-					description = "No existe un lote para el criterio indicado",
+					description = "LOTE_NO_ENCONTRADO: no existe un lote para el criterio indicado",
+					content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+			@ApiResponse(
+					responseCode = "500",
+					description = "ERROR_INTERNO: falla técnica inesperada",
 					content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
 	})
 	public ResponseEntity<FichaLoteResponse> consultarFicha(
