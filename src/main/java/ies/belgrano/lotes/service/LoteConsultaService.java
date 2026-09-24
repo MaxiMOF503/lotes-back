@@ -44,21 +44,21 @@ public class LoteConsultaService {
 				new CoordenadasResponse(
 						BigDecimal.valueOf(lote.getUbicacion().getY()),
 						BigDecimal.valueOf(lote.getUbicacion().getX())),
-				PROCEDENCIA_SIMULADA);
+				procedencia(lote.getProcedenciaLote()));
 
 		ZonificacionResponse zonificacion = new ZonificacionResponse(
 				lote.getZonificacion(),
 				lote.isZonificacionVerificada(),
-				PROCEDENCIA_SIMULADA);
+				procedencia(lote.getProcedenciaZonificacion()));
 
 		ElectricidadResponse electricidad = new ElectricidadResponse(
 				lote.getDistanciaRedElectricaMts(),
 				lote.isTieneAccesoElectricidad(),
-				PROCEDENCIA_SIMULADA);
+				procedencia(lote.getProcedenciaElectricidad()));
 
 		AguaResponse agua = new AguaResponse(
 				lote.isTieneCoberturaAgua(),
-				PROCEDENCIA_SIMULADA);
+				procedencia(lote.getProcedenciaAgua()));
 
 		return new FichaLoteResponse(
 				criterioResponse(criteria),
@@ -66,10 +66,18 @@ public class LoteConsultaService {
 				zonificacion,
 				electricidad,
 				agua,
-				ADVERTENCIA,
+				advertencia(lote),
 				dondeConsultar(lote));
 	}
 
+    private ProcedenciaResponse procedencia(ies.belgrano.lotes.entity.ProcedenciaDatos datos) {
+        return datos==null ? PROCEDENCIA_SIMULADA : datos.response();
+    }
+    private String advertencia(LoteEntity lote) {
+        var datos=java.util.Arrays.asList(lote.getProcedenciaLote(),lote.getProcedenciaZonificacion(),lote.getProcedenciaElectricidad(),lote.getProcedenciaAgua());
+        if(datos.stream().allMatch(p -> p==null || "SIMULADO".equals(p.response().tipo()))) return ADVERTENCIA;
+        return "Consulte la procedencia de cada sección. La ficha es orientativa y no reemplaza la verificación ante el organismo competente.";
+    }
 	private DondeConsultarResponse dondeConsultar(LoteEntity lote) {
 		var departamento = lote.getDepartamento();
 		if (departamento == null) {

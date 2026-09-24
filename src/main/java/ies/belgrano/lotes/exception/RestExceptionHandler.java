@@ -22,6 +22,20 @@ public class RestExceptionHandler {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RestExceptionHandler.class);
 
+    @ExceptionHandler(OperacionInvalidaException.class)
+    public ResponseEntity<ApiErrorResponse> operacion(OperacionInvalidaException e,HttpServletRequest r) {
+        return ResponseEntity.status(e.status).body(new ApiErrorResponse(Instant.now(),e.status,e.codigo,e.getMessage(),r.getRequestURI(),List.of()));
+    }
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> conflicto(Exception e,HttpServletRequest r) {
+        return ResponseEntity.status(409).body(new ApiErrorResponse(Instant.now(),409,"CONFLICTO_DATOS","Identificador duplicado o datos incompatibles",r.getRequestURI(),List.of()));
+    }
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+        org.springframework.web.bind.MissingServletRequestParameterException.class})
+    public ResponseEntity<ApiErrorResponse> formato(Exception e,HttpServletRequest r) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(Instant.now(),400,"DATOS_INVALIDOS","Revisá el formato y los parámetros enviados",r.getRequestURI(),List.of()));
+    }
 	@ExceptionHandler(RuntimeException.class)
 	public ResponseEntity<ApiErrorResponse> handleErrorTecnico(
 			RuntimeException exception, HttpServletRequest request) {

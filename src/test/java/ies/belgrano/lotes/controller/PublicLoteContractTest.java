@@ -28,8 +28,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PublicLoteController.class)
-@Import(LoteConsultaService.class)
+@Import({LoteConsultaService.class, ies.belgrano.lotes.config.SecurityConfig.class})
 class PublicLoteContractTest {
+    @MockitoBean private org.springframework.security.core.userdetails.UserDetailsService autenticacion;
+    @MockitoBean private ies.belgrano.lotes.service.EstadisticaService estadisticas;
+
 
     private static final String PATH = "/api/public/v1/lotes/ficha";
 
