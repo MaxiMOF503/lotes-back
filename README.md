@@ -2,6 +2,8 @@
 
 Spring Boot 4.1.1, Java 21, Maven Wrapper, Spring MVC, Bean Validation y JPA/MySQL.
 
+El [mantenedor y las estadísticas](docs/mantenedor-estadisticas.md) agregan administración de lotes, acceso con rol ADMIN y contadores diarios anónimos. La guía explica cómo crear el administrador y conectar el frontend.
+
 El contrato de `GET /api/public/v1/lotes/ficha` está en [docs/contrato-ficha-publica.md](docs/contrato-ficha-publica.md). Incluye parámetros, todos los DTOs públicos, ejemplos y tratamiento de errores para el futuro frontend.
 
 ## Ejecución

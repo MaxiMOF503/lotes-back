@@ -46,6 +46,8 @@ public class DepartamentoEntity {
 		this.fuenteDatos = fuenteDatos;
 	}
 
+	public Long getId() { return id; }
+
 	public String getNombre() {
 		return nombre;
 	}

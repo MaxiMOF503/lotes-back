@@ -26,8 +26,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@org.springframework.context.annotation.Import(ies.belgrano.lotes.config.SecurityConfig.class)
 @WebMvcTest(PublicLoteController.class)
 class PublicLoteControllerTest {
+    @MockitoBean private org.springframework.security.core.userdetails.UserDetailsService autenticacion;
+    @MockitoBean private ies.belgrano.lotes.service.EstadisticaService estadisticas;
+
 
 	@Autowired
 	private MockMvc mockMvc;
