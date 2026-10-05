@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ConsultaLoteValida {
 
-	String message() default "Debe informar un identificador o ambas coordenadas, pero no ambos criterios";
+	String message() default "Debe informar identificador, dirección o ambas coordenadas, sin combinar criterios";
 
 	Class<?>[] groups() default {};
 

@@ -18,6 +18,11 @@ public class ConsultaLoteRequest {
 	@Schema(example = "LOT-DEMO-001", description = "Identificador público del lote")
 	private String identificador;
 
+	@Size(min = 3, max = 255, message = "La dirección debe tener entre 3 y 255 caracteres")
+	@Pattern(regexp = "[^%_]*\\S[^%_]*", message = "La dirección no puede estar vacía ni contener % o _")
+	@Schema(example = "Calle Demostración 123, Mendoza", description = "Dirección aproximada del lote")
+	private String direccion;
+
 	@DecimalMin(value = "-90", message = "La latitud debe ser mayor o igual a -90")
 	@DecimalMax(value = "90", message = "La latitud debe ser menor o igual a 90")
 	@Schema(example = "-32.8895", description = "Latitud WGS84")
@@ -34,6 +39,14 @@ public class ConsultaLoteRequest {
 
 	public void setIdentificador(String identificador) {
 		this.identificador = identificador;
+	}
+
+	public String getDireccion() {
+		return direccion;
+	}
+
+	public void setDireccion(String direccion) {
+		this.direccion = direccion == null ? null : direccion.trim().replaceAll("\\s+", " ");
 	}
 
 	public BigDecimal getLatitud() {
@@ -55,6 +68,9 @@ public class ConsultaLoteRequest {
 	public ConsultaLoteCriteria toCriteria() {
 		if (identificador != null && !identificador.isBlank()) {
 			return ConsultaLoteCriteria.porIdentificador(identificador.trim());
+		}
+		if (direccion != null && !direccion.isBlank()) {
+			return ConsultaLoteCriteria.porDireccion(direccion);
 		}
 		return ConsultaLoteCriteria.porCoordenadas(latitud, longitud);
 	}

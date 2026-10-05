@@ -2,6 +2,7 @@ package ies.belgrano.lotes.controller;
 
 import ies.belgrano.lotes.dto.request.ConsultaLoteRequest;
 import ies.belgrano.lotes.dto.response.ApiErrorResponse;
+import ies.belgrano.lotes.dto.response.BusquedaDireccionResponse;
 import ies.belgrano.lotes.dto.response.FichaLoteResponse;
 import ies.belgrano.lotes.service.LoteConsultaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,8 +33,9 @@ public class PublicLoteController {
 
 	@GetMapping("/ficha")
 	@Operation(summary = "Consultar la ficha demostrativa de un lote",
-			description = "Informar identificador o ambas coordenadas WGS84, nunca ambos criterios. "
-					+ "La consulta por coordenadas requiere coincidencia exacta. "
+			description = "Informar identificador, dirección o ambas coordenadas WGS84, sin combinarlos. "
+					+ "Las coordenadas siguen disponibles para clientes existentes y requieren coincidencia exacta. "
+					+ "Si hay varias coincidencias por dirección, consultar /opciones y elegir un lote. "
 					+ "Cada sección conserva su procedencia; los datos actuales son simulados y no oficiales.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Lote demostrativo encontrado",
@@ -45,6 +48,8 @@ public class PublicLoteController {
 					responseCode = "404",
 					description = "LOTE_NO_ENCONTRADO: no existe un lote para el criterio indicado",
 					content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+			@ApiResponse(responseCode = "409", description = "DIRECCION_AMBIGUA: hay varios lotes coincidentes",
+					content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
 			@ApiResponse(
 					responseCode = "500",
 					description = "ERROR_INTERNO: falla técnica inesperada",
@@ -53,5 +58,12 @@ public class PublicLoteController {
 	public ResponseEntity<FichaLoteResponse> consultarFicha(
 			@Valid @ModelAttribute @ParameterObject ConsultaLoteRequest request) {
 		return ResponseEntity.ok(loteConsultaService.consultar(request.toCriteria()));
+	}
+
+	@GetMapping("/opciones")
+	@Operation(summary = "Buscar opciones de lotes por dirección aproximada",
+			description = "Devuelve hasta 10 opciones públicas y señala si hay más. Los datos pueden ser demostrativos.")
+	public ResponseEntity<BusquedaDireccionResponse> opciones(@RequestParam String direccion) {
+		return ResponseEntity.ok(loteConsultaService.opcionesPorDireccion(direccion));
 	}
 }

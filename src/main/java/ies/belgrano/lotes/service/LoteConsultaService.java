@@ -1,6 +1,7 @@
 package ies.belgrano.lotes.service;
 
 import ies.belgrano.lotes.dto.response.AguaResponse;
+import ies.belgrano.lotes.dto.response.BusquedaDireccionResponse;
 import ies.belgrano.lotes.dto.response.CoordenadasResponse;
 import ies.belgrano.lotes.dto.response.CriterioConsultaResponse;
 import ies.belgrano.lotes.dto.response.DatosLoteResponse;
@@ -11,12 +12,14 @@ import ies.belgrano.lotes.dto.response.ProcedenciaResponse;
 import ies.belgrano.lotes.dto.response.ZonificacionResponse;
 import ies.belgrano.lotes.entity.LoteEntity;
 import ies.belgrano.lotes.exception.LoteNoEncontradoException;
+import ies.belgrano.lotes.exception.OperacionInvalidaException;
 import ies.belgrano.lotes.model.ConsultaLoteCriteria;
 import ies.belgrano.lotes.repository.LoteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class LoteConsultaService {
@@ -70,6 +73,30 @@ public class LoteConsultaService {
 				dondeConsultar(lote));
 	}
 
+	@Transactional(readOnly = true)
+	public BusquedaDireccionResponse opcionesPorDireccion(String direccion) {
+		List<LoteEntity> lotes = loteRepository.buscarPorDireccion(normalizarDireccion(direccion), 11);
+		if (lotes.isEmpty()) {
+			throw new LoteNoEncontradoException();
+		}
+		return new BusquedaDireccionResponse(
+				lotes.stream().limit(10).map(lote -> new BusquedaDireccionResponse.Opcion(
+						lote.getIdentificador(), lote.getDireccionAproximada(),
+						lote.getDepartamento() == null ? null : lote.getDepartamento().getNombre(),
+						lote.isEsDatoSimulado())).toList(),
+				lotes.size() > 10);
+	}
+
+	private String normalizarDireccion(String direccion) {
+		String normalizada = direccion == null ? "" : direccion.trim().replaceAll("\\s+", " ");
+		if (normalizada.length() < 3 || normalizada.length() > 255
+				|| normalizada.contains("%") || normalizada.contains("_")) {
+			throw new OperacionInvalidaException(400, "CONSULTA_INVALIDA",
+					"La dirección debe tener entre 3 y 255 caracteres y no contener % ni _");
+		}
+		return normalizada;
+	}
+
     private ProcedenciaResponse procedencia(ies.belgrano.lotes.entity.ProcedenciaDatos datos) {
         return datos==null ? PROCEDENCIA_SIMULADA : datos.response();
     }
@@ -94,6 +121,14 @@ public class LoteConsultaService {
 	private LoteEntity buscar(ConsultaLoteCriteria criteria) {
 		return (switch (criteria.tipo()) {
 			case IDENTIFICADOR -> loteRepository.findByIdentificador(criteria.identificador());
+			case DIRECCION -> {
+				List<LoteEntity> lotes = loteRepository.buscarPorDireccion(normalizarDireccion(criteria.direccion()), 2);
+				if (lotes.size() > 1) {
+					throw new OperacionInvalidaException(409, "DIRECCION_AMBIGUA",
+							"Hay varios lotes con esa dirección. Elegí uno de los resultados de búsqueda");
+				}
+				yield lotes.stream().findFirst();
+			}
 			case COORDENADAS -> loteRepository.findByCoordenadasExactas(
 					criteria.latitud(), criteria.longitud());
 		}).orElseThrow(LoteNoEncontradoException::new);
@@ -104,6 +139,7 @@ public class LoteConsultaService {
 				criteria.tipo().name(),
 				criteria.identificador(),
 				criteria.latitud(),
-				criteria.longitud());
+				criteria.longitud(),
+				criteria.direccion());
 	}
 }

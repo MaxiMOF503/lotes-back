@@ -29,7 +29,7 @@ public class EstadisticaService {
             LoggerFactory.getLogger(getClass()).warn("No se pudo registrar una estadística; la consulta continúa");
         }
     }
-    public record Dia(LocalDate fecha,long visitas,long consultas,long porIdentificador,long porCoordenadas,long sinCriterioValido,
+    public record Dia(LocalDate fecha,long visitas,long consultas,long porIdentificador,long porCoordenadas,long porDireccion,long sinCriterioValido,
         long exitosas,long invalidas,long sinResultados,long erroresTecnicos) {}
     public record Resumen(LocalDate desde,LocalDate hasta,String zona,long visitas,long consultas,List<Dia> dias) {}
     public Resumen consultar(LocalDate desde,LocalDate hasta) {
@@ -37,15 +37,15 @@ public class EstadisticaService {
             throw new OperacionInvalidaException(400,"RANGO_INVALIDO","Informar desde y hasta en orden, con un máximo de 366 días");
         var filas=jdbc.queryForList("SELECT fecha,tipo,criterio,resultado,cantidad FROM estadisticas_diarias WHERE fecha BETWEEN ? AND ?",desde,hasta);
         Map<LocalDate,long[]> contadores=new TreeMap<>();
-        for(LocalDate d=desde;!d.isAfter(hasta);d=d.plusDays(1)) contadores.put(d,new long[9]);
+        for(LocalDate d=desde;!d.isAfter(hasta);d=d.plusDays(1)) contadores.put(d,new long[10]);
         for(var fila:filas) {
             var fecha=((java.sql.Date)fila.get("fecha")).toLocalDate();var c=contadores.get(fecha);long n=((Number)fila.get("cantidad")).longValue();
             if("VISITA".equals(fila.get("tipo"))) {c[0]+=n;continue;}
             c[1]+=n;
-            int criterio=switch(fila.get("criterio").toString()) {case "IDENTIFICADOR" -> 2;case "COORDENADAS" -> 3;default -> 4;};c[criterio]+=n;
+            int criterio=switch(fila.get("criterio").toString()) {case "IDENTIFICADOR" -> 2;case "COORDENADAS" -> 3;case "DIRECCION" -> 9;default -> 4;};c[criterio]+=n;
             int resultado=switch(fila.get("resultado").toString()) {case "EXITO" -> 5;case "INVALIDA" -> 6;case "SIN_RESULTADOS" -> 7;default -> 8;};c[resultado]+=n;
         }
-        var dias=contadores.entrySet().stream().map(e -> {var c=e.getValue();return new Dia(e.getKey(),c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8]);}).toList();
+        var dias=contadores.entrySet().stream().map(e -> {var c=e.getValue();return new Dia(e.getKey(),c[0],c[1],c[2],c[3],c[9],c[4],c[5],c[6],c[7],c[8]);}).toList();
         return new Resumen(desde,hasta,zona.toString(),dias.stream().mapToLong(Dia::visitas).sum(),dias.stream().mapToLong(Dia::consultas).sum(),dias);
     }
 }

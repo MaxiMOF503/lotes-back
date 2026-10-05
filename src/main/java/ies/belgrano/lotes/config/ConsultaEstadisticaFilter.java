@@ -17,8 +17,11 @@ public class ConsultaEstadisticaFilter extends OncePerRequestFilter {
         try {chain.doFilter(req,res);} catch(ServletException|IOException|RuntimeException e) {fallo=true;throw e;}
         finally {
             boolean id=req.getParameter("identificador")!=null && !req.getParameter("identificador").isBlank();
+            boolean direccion=req.getParameter("direccion")!=null && !req.getParameter("direccion").isBlank();
             boolean lat=req.getParameter("latitud")!=null, lon=req.getParameter("longitud")!=null;
-            String criterio=id && !lat && !lon ? "IDENTIFICADOR" : !id && lat && lon ? "COORDENADAS" : "INVALIDO";
+            String criterio=id && !direccion && !lat && !lon ? "IDENTIFICADOR"
+                : direccion && !id && !lat && !lon ? "DIRECCION"
+                : !id && !direccion && lat && lon ? "COORDENADAS" : "INVALIDO";
             int status=fallo ? 500 : res.getStatus();
             String resultado=status>=500 ? "ERROR_TECNICO" : status==404 ? "SIN_RESULTADOS" : status>=400 ? "INVALIDA" : "EXITO";
             estadisticas.registrar("CONSULTA",criterio,resultado);

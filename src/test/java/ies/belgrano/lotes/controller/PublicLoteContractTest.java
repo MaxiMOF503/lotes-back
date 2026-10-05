@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.BDDMockito.given;
@@ -41,6 +42,48 @@ class PublicLoteContractTest {
 
     @MockitoBean
     private LoteRepository repository;
+
+    @Test
+    void buscaPorDireccionYConservaElCriterioEnLaFicha() throws Exception {
+        given(repository.buscarPorDireccion("Calle Demostración 123", 2)).willReturn(List.of(lote()));
+
+        mvc.perform(get(PATH).param("direccion", "  Calle   Demostración 123  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.criterioConsulta.tipo").value("DIRECCION"))
+                .andExpect(jsonPath("$.criterioConsulta.direccion").value("Calle Demostración 123"))
+                .andExpect(jsonPath("$.lote.identificador").value("LOT-DEMO-001"));
+    }
+
+    @Test
+    void opcionesPorDireccionExponenCoincidenciasSinDatosPrivados() throws Exception {
+        given(repository.buscarPorDireccion("Demostración", 11)).willReturn(List.of(lote()));
+
+        mvc.perform(get("/api/public/v1/lotes/opciones").param("direccion", "Demostración"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.opciones[0].identificador").value("LOT-DEMO-001"))
+                .andExpect(jsonPath("$.opciones[0].direccionAproximada").value("Calle Demostración 123, Mendoza"))
+                .andExpect(jsonPath("$.opciones[0].departamento").value("Luján de Cuyo"))
+                .andExpect(jsonPath("$.opciones[0].datoSimulado").value(true))
+                .andExpect(jsonPath("$.opciones[0].titularSimulado").doesNotExist())
+                .andExpect(jsonPath("$.hayMas").value(false));
+    }
+
+    @Test
+    void variasCoincidenciasPidenElegirUnLote() throws Exception {
+        given(repository.buscarPorDireccion("Demostración", 2)).willReturn(List.of(lote(), lote()));
+
+        mvc.perform(get(PATH).param("direccion", "Demostración"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("DIRECCION_AMBIGUA"));
+    }
+
+    @Test
+    void rechazaDireccionConComodinDeSql() throws Exception {
+        mvc.perform(get(PATH).param("direccion", "Cal_e"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigo").value("CONSULTA_INVALIDA"));
+        verifyNoInteractions(repository);
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
