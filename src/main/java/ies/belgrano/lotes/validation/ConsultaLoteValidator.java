@@ -14,10 +14,13 @@ public class ConsultaLoteValidator implements ConstraintValidator<ConsultaLoteVa
 
 		boolean tieneIdentificador = request.getIdentificador() != null
 				&& !request.getIdentificador().isBlank();
+		boolean tieneDireccion = request.getDireccion() != null
+				&& !request.getDireccion().isBlank();
 		boolean tieneLatitud = request.getLatitud() != null;
 		boolean tieneLongitud = request.getLongitud() != null;
 
-		return (tieneIdentificador && !tieneLatitud && !tieneLongitud)
-				|| (!tieneIdentificador && tieneLatitud && tieneLongitud);
+		return (tieneIdentificador && !tieneDireccion && !tieneLatitud && !tieneLongitud)
+				|| (tieneDireccion && !tieneIdentificador && !tieneLatitud && !tieneLongitud)
+				|| (!tieneIdentificador && !tieneDireccion && tieneLatitud && tieneLongitud);
 	}
 }

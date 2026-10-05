@@ -104,6 +104,23 @@ class PublicLoteMySqlIT {
                 .andExpect(jsonPath("$.dondeConsultar").value(nullValue()));
     }
 
+    @Test
+    @Transactional
+    void buscaDireccionSinDistinguirAcentosMayusculasNiEspaciosRepetidos() throws Exception {
+        var geometry = new GeometryFactory(new PrecisionModel(), 4326);
+        repository.saveAndFlush(new LoteEntity("IT-DIRECCION", geometry.createPoint(new Coordinate(-68.8, -32.8)),
+                null, "Avenida  San   Martín 456", null, false, null, false, false, null, null, true));
+
+        mvc.perform(get("/api/public/v1/lotes/opciones").param("direccion", "  SAN   MARTIN 456  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.opciones[0].identificador").value("IT-DIRECCION"))
+                .andExpect(jsonPath("$.opciones[0].datoSimulado").value(true));
+        mvc.perform(get(PATH).param("direccion", "avenida san martin 456"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.criterioConsulta.tipo").value("DIRECCION"))
+                .andExpect(jsonPath("$.lote.identificador").value("IT-DIRECCION"));
+    }
+
     @Autowired private tools.jackson.databind.ObjectMapper mapper;
     @Autowired private ies.belgrano.lotes.service.EstadisticaService estadisticas;
     @Autowired private ies.belgrano.lotes.repository.UsuarioRepository usuarios;
