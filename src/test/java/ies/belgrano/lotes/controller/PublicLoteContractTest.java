@@ -143,6 +143,7 @@ class PublicLoteContractTest {
             "?latitud=0&longitud=181", "?latitud=0&longitud=-181",
             "?latitud=abc&longitud=0", "?latitud=0&longitud=abc",
             "?identificador=LOT-DEMO-001&latitud=0&longitud=0",
+            "?identificador=LOT-DEMO-001&direccion=Calle%20Demostraci%C3%B3n",
             "?identificador=LOT-DEMO-001&latitud=0", "?identificador=LOT-DEMO-001&longitud=0",
             "?identificador=&latitud=0&longitud=0"})
     void rechazaConsultaInvalidaAntesDeBuscar(String query) throws Exception {

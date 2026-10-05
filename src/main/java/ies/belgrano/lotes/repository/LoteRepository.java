@@ -16,7 +16,7 @@ public interface LoteRepository extends JpaRepository<LoteEntity, Long> {
 	@Query(value = """
 			SELECT * FROM lotes
 			WHERE direccion_aproximada IS NOT NULL
-			  AND CONVERT(direccion_aproximada USING utf8mb4) COLLATE utf8mb4_0900_ai_ci
+			  AND TRIM(REGEXP_REPLACE(CONVERT(direccion_aproximada USING utf8mb4), '[[:space:]]+', ' ')) COLLATE utf8mb4_0900_ai_ci
 			      LIKE CONCAT('%', CONVERT(:direccion USING utf8mb4) COLLATE utf8mb4_0900_ai_ci, '%')
 			ORDER BY direccion_aproximada, identificador
 			LIMIT :limite
