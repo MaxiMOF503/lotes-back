@@ -120,7 +120,7 @@ public class LoteConsultaService {
 
 	private LoteEntity buscar(ConsultaLoteCriteria criteria) {
 		return (switch (criteria.tipo()) {
-			case IDENTIFICADOR -> loteRepository.findByIdentificador(criteria.identificador());
+			case IDENTIFICADOR -> loteRepository.findByIdentificadorAndEliminadoFalse(criteria.identificador());
 			case DIRECCION -> {
 				List<LoteEntity> lotes = loteRepository.buscarPorDireccion(normalizarDireccion(criteria.direccion()), 2);
 				if (lotes.size() > 1) {

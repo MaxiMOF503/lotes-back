@@ -50,9 +50,16 @@ public class RestExceptionHandler {
 			BindException exception,
 			HttpServletRequest request) {
 		List<ApiErrorResponse.DetalleError> detalles = new ArrayList<>();
+		boolean editorLotes = request.getRequestURI().startsWith("/api/admin/lotes");
 
 		for (FieldError error : exception.getBindingResult().getFieldErrors()) {
-			detalles.add(new ApiErrorResponse.DetalleError(error.getField(), error.getDefaultMessage()));
+			String campo = error.getField();
+			if (editorLotes) {
+				campo = campo.replaceAll("\\.referenciaValida$", ".referencia");
+				if (campo.equals("zonificacionConsistente")) campo = "zonificacionVerificada";
+				if (campo.equals("distanciaFinita")) campo = "distanciaRedElectricaMts";
+			}
+			detalles.add(new ApiErrorResponse.DetalleError(campo, error.getDefaultMessage()));
 		}
 		for (ObjectError error : exception.getBindingResult().getGlobalErrors()) {
 			detalles.add(new ApiErrorResponse.DetalleError("criterio", error.getDefaultMessage()));
@@ -62,8 +69,8 @@ public class RestExceptionHandler {
 		return ResponseEntity.badRequest().body(new ApiErrorResponse(
 				Instant.now(),
 				HttpStatus.BAD_REQUEST.value(),
-				"CONSULTA_INVALIDA",
-				"Los parámetros de consulta no son válidos",
+				editorLotes ? "DATOS_LOTE_INVALIDOS" : "CONSULTA_INVALIDA",
+				editorLotes ? "Revisá los campos señalados del lote" : "Los parámetros de consulta no son válidos",
 				request.getRequestURI(),
 				detalles));
 	}
