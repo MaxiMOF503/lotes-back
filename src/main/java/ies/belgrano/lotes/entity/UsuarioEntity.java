@@ -49,6 +49,10 @@ public class UsuarioEntity {
 		return email;
 	}
 
+	public void cambiarPassword(String passwordCodificada) {
+		this.password = passwordCodificada;
+	}
+
 	public String getPassword() {
 		return password;
 	}

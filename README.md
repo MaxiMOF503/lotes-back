@@ -14,7 +14,9 @@ Requiere Java 21 y MySQL 8+ con la base `verificador_lotes` creada. Configurar l
 .\mvnw.cmd spring-boot:run
 ```
 
-El inicializador existente carga el lote `LOT-DEMO-001` en las coordenadas `-32.8895, -68.8458` y los datos demostrativos asociados si no existen. La ficha es simulada, sin valor oficial. Puerto predeterminado: 8080.
+El inicializador carga el lote `LOT-DEMO-001` y [la carga SQL de Luján de Cuyo](src/main/resources/data.sql) agrega diez lotes ficticios (`LOT-DEMO-LUJ-002` a `LOT-DEMO-LUJ-011`) al iniciar el backend. Los puntos indican localidades aproximadas: no son parcelas ni domicilios reales. La carga es reejecutable: omite identificadores existentes sin reemplazar sus datos, incluso si fueron editados o desactivados. Cada integrante necesita su propia base MySQL; después de actualizar el repositorio, debe iniciar el backend conectado a esa base para recibir los ejemplos. También puede ejecutar `src/main/resources/data.sql` manualmente en DBeaver sobre `verificador_lotes`. La ficha es simulada, sin valor oficial. Puerto predeterminado: 8080.
+
+Para presentar el proyecto con un administrador y un usuario de consulta, usar la [guía de demostración en clase](docs/demo-clase.md). El modo demo pide las contraseñas al iniciarse y no publica credenciales en el repositorio.
 
 Swagger UI: `/swagger-ui/index.html`. OpenAPI JSON: `/v3/api-docs`.
 
