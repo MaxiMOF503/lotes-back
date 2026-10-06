@@ -55,6 +55,9 @@ public class LoteEntity {
 	@Column(nullable = false)
 	private boolean esDatoSimulado = true;
 
+	@Column(nullable = false, columnDefinition = "boolean default false")
+	private boolean eliminado = false;
+
 
     @Embedded @AttributeOverrides({
         @AttributeOverride(name="tipo",column=@Column(name="lote_tipo")),
@@ -115,6 +118,8 @@ public class LoteEntity {
 	}
 
     public Long getId() { return id; }
+    public boolean isEliminado() { return eliminado; }
+    public void eliminar() { eliminado = true; }
     public void actualizar(ies.belgrano.lotes.dto.request.LoteAdminRequest r, DepartamentoEntity departamento) {
         identificador=r.identificador().trim();
         ubicacion=new org.locationtech.jts.geom.GeometryFactory(new org.locationtech.jts.geom.PrecisionModel(),4326)

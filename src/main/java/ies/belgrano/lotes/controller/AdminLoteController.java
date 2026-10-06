@@ -5,6 +5,7 @@ import ies.belgrano.lotes.repository.DepartamentoRepository;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminLoteController {
@@ -16,6 +17,7 @@ public class AdminLoteController {
         var lote=service.crear(r);return ResponseEntity.created(java.net.URI.create("/api/admin/lotes/"+lote.id())).body(lote);
     }
     @PutMapping("/lotes/{id}") public LoteAdminService.Detalle editar(@PathVariable Long id,@Valid @RequestBody LoteAdminRequest r) {return service.editar(id,r);}
+    @DeleteMapping("/lotes/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void eliminar(@PathVariable Long id) {service.eliminar(id);}
     public record Departamento(Long id,String nombre) {}
     @GetMapping("/departamentos") public java.util.List<Departamento> departamentos() {
         return departamentos.findAll(org.springframework.data.domain.Sort.by("nombre")).stream().map(d -> new Departamento(d.getId(),d.getNombre())).toList();

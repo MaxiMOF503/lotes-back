@@ -36,7 +36,7 @@ class LoteConsultaServiceTest {
 
 	@Test
 	void consultaPorIdentificadorComponeLaFichaFueraDelController() {
-		given(loteRepository.findByIdentificador("LOT-DEMO-001"))
+		given(loteRepository.findByIdentificadorAndEliminadoFalse("LOT-DEMO-001"))
 				.willReturn(Optional.of(loteDemostrativo()));
 
 		FichaLoteResponse response = service.consultar(
@@ -68,7 +68,7 @@ class LoteConsultaServiceTest {
 
 	@Test
 	void criterioValidoSinCoincidenciaLanzaLoteNoEncontrado() {
-		given(loteRepository.findByIdentificador("NO-EXISTE")).willReturn(Optional.empty());
+		given(loteRepository.findByIdentificadorAndEliminadoFalse("NO-EXISTE")).willReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.consultar(
 				ConsultaLoteCriteria.porIdentificador("NO-EXISTE")))

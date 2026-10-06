@@ -16,13 +16,14 @@ public class LoteAdminService {
     public record Pagina(java.util.List<Resumen> items,int pagina,int totalPaginas,long total) {}
     @Transactional(readOnly=true) public Pagina listar(int pagina) {
         if(pagina<0) throw new OperacionInvalidaException(400,"DATOS_INVALIDOS","La página no puede ser negativa");
-        var result=lotes.findAll(org.springframework.data.domain.PageRequest.of(pagina,20,org.springframework.data.domain.Sort.by("identificador")));
+        var result=lotes.findByEliminadoFalse(org.springframework.data.domain.PageRequest.of(pagina,20,org.springframework.data.domain.Sort.by("identificador")));
         return new Pagina(result.map(l -> new Resumen(l.getId(),l.getIdentificador(),l.getDireccionAproximada())).getContent(),pagina,result.getTotalPages(),result.getTotalElements());
     }
     public Detalle crear(LoteAdminRequest r) {verificarDuplicado(r,null);return detalle(lotes.saveAndFlush(LoteEntity.crear(r,departamento(r))));}
     public Detalle editar(Long id,LoteAdminRequest r) {var lote=buscar(id);verificarDuplicado(r,id);lote.actualizar(r,departamento(r));return detalle(lotes.saveAndFlush(lote));}
+    public void eliminar(Long id) {var lote=buscar(id);lote.eliminar();lotes.saveAndFlush(lote);}
     @Transactional(readOnly=true) public Detalle obtener(Long id) {return detalle(buscar(id));}
-    private LoteEntity buscar(Long id) {return lotes.findById(id).orElseThrow(() -> new OperacionInvalidaException(404,"LOTE_NO_ENCONTRADO","No existe el lote indicado"));}
+    private LoteEntity buscar(Long id) {return lotes.findByIdAndEliminadoFalse(id).orElseThrow(() -> new OperacionInvalidaException(404,"LOTE_NO_ENCONTRADO","No existe el lote indicado"));}
     private DepartamentoEntity departamento(LoteAdminRequest r) {
         return r.departamentoId()==null ? null : departamentos.findById(r.departamentoId()).orElseThrow(() -> new OperacionInvalidaException(400,"DEPARTAMENTO_INVALIDO","El departamento no existe"));
     }

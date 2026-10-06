@@ -94,7 +94,7 @@ class PublicLoteContractTest {
                     .willReturn(Optional.of(lote()));
             request.param("latitud", "-32.8895").param("longitud", "-68.8458");
         } else {
-            given(repository.findByIdentificador("LOT-DEMO-001")).willReturn(Optional.of(lote()));
+            given(repository.findByIdentificadorAndEliminadoFalse("LOT-DEMO-001")).willReturn(Optional.of(lote()));
             request.param("identificador", " LOT-DEMO-001 ");
         }
         ResultActions result = mvc.perform(request)
@@ -132,7 +132,7 @@ class PublicLoteContractTest {
             result.andExpect(jsonPath("$.criterioConsulta.identificador").value("LOT-DEMO-001"))
                     .andExpect(jsonPath("$.criterioConsulta.latitud").isEmpty())
                     .andExpect(jsonPath("$.criterioConsulta.longitud").isEmpty());
-            verify(repository).findByIdentificador("LOT-DEMO-001");
+            verify(repository).findByIdentificadorAndEliminadoFalse("LOT-DEMO-001");
         }
     }
 
@@ -171,7 +171,7 @@ class PublicLoteContractTest {
 
     @Test
     void fallaDePersistenciaDevuelve500SinFiltrarDetallesInternos() throws Exception {
-        given(repository.findByIdentificador("LOT-DEMO-001"))
+        given(repository.findByIdentificadorAndEliminadoFalse("LOT-DEMO-001"))
                 .willThrow(new DataAccessResourceFailureException("detalle interno de conexión"));
         verificarError(mvc.perform(get(PATH).param("identificador", "LOT-DEMO-001")), 500, "ERROR_INTERNO")
                 .andExpect(jsonPath("$.mensaje").value("No se pudo completar la consulta"))
@@ -181,7 +181,7 @@ class PublicLoteContractTest {
     @Test
     void loteConDatosParcialesConservaNullSinInventarInformacion() throws Exception {
         var geometry = new GeometryFactory(new PrecisionModel(), 4326);
-        given(repository.findByIdentificador("PARCIAL")).willReturn(Optional.of(new LoteEntity(
+        given(repository.findByIdentificadorAndEliminadoFalse("PARCIAL")).willReturn(Optional.of(new LoteEntity(
                 "PARCIAL", geometry.createPoint(new Coordinate(-68.8458, -32.8895)),
                 null, null, null, false, null, false, false, null, null, true)));
 
@@ -199,7 +199,7 @@ class PublicLoteContractTest {
     @Test
     void departamentoSinContactoNoRecibeDatosInventados() throws Exception {
         var geometry = new GeometryFactory(new PrecisionModel(), 4326);
-        given(repository.findByIdentificador("PARCIAL")).willReturn(Optional.of(new LoteEntity(
+        given(repository.findByIdentificadorAndEliminadoFalse("PARCIAL")).willReturn(Optional.of(new LoteEntity(
                 "PARCIAL", geometry.createPoint(new Coordinate(-68.8458, -32.8895)),
                 new DepartamentoEntity("Departamento de prueba", null, null, null, null),
                 null, null, false, null, false, false, null, null, true)));
