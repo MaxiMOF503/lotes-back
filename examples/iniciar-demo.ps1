@@ -27,7 +27,7 @@ function Read-Secret([string]$prompt) {
 
 $previous = @{}
 $names = @('DB_URL', 'DB_USERNAME', 'DB_PASSWORD',
-           'DEMO_ACCOUNTS_ENABLED', 'DEMO_ADMIN_PASSWORD', 'DEMO_USER_PASSWORD',
+           'DEMO_LOTES_ENABLED', 'DEMO_SQL_INIT_MODE', 'DEMO_ACCOUNTS_ENABLED', 'DEMO_ADMIN_PASSWORD', 'DEMO_USER_PASSWORD',
            'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'USUARIO_EMAIL', 'USUARIO_PASSWORD')
 foreach ($name in $names) {
     $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
@@ -44,6 +44,8 @@ try {
     if ($env:DEMO_ADMIN_PASSWORD.Length -lt 12 -or $env:DEMO_USER_PASSWORD.Length -lt 12) {
         throw 'Las dos contraseñas de demostración deben tener al menos 12 caracteres.'
     }
+    $env:DEMO_LOTES_ENABLED = 'true'
+    $env:DEMO_SQL_INIT_MODE = 'always'
     $env:DEMO_ACCOUNTS_ENABLED = 'true'
     $env:ADMIN_EMAIL = ''
     $env:ADMIN_PASSWORD = ''

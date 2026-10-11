@@ -1,6 +1,6 @@
 # Demostración en clase
 
-La base de cada integrante es independiente. Después de actualizar el backend, iniciarlo conectado a MySQL para cargar automáticamente los diez lotes ficticios de Luján de Cuyo. No son datos catastrales reales.
+La base de cada integrante es independiente. Para cargar los diez lotes ficticios de Luján de Cuyo, iniciar expresamente con el script de esta guía o configurar DEMO_LOTES_ENABLED=true y DEMO_SQL_INIT_MODE=always. La ejecución normal prioriza las capas reales y no inserta ejemplos. No son datos catastrales reales.
 
 ## Iniciar con cuentas de clase
 
@@ -27,6 +27,7 @@ En **Run Configurations → Spring Boot App → lotes - LotesApplication → Env
 
 - `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` para la propia base MySQL.
 - `DEMO_ACCOUNTS_ENABLED=true`.
+- `DEMO_LOTES_ENABLED=true` y `DEMO_SQL_INIT_MODE=always` para incluir lotes ficticios.
 - `DEMO_ADMIN_PASSWORD` y `DEMO_USER_PASSWORD` con valores de al menos 12 caracteres elegidos para esa PC.
 
 Ejecutar nuevamente el backend. Las cuentas se crean en esa base, no en la base de otra persona. Para no crear ni actualizar cuentas de clase, dejar `DEMO_ACCOUNTS_ENABLED` sin configurar o en `false`. En un servidor público debe permanecer desactivado.

@@ -10,7 +10,8 @@ public class ConsultaEstadisticaFilter extends OncePerRequestFilter {
     private final EstadisticaService estadisticas;
     public ConsultaEstadisticaFilter(EstadisticaService estadisticas) {this.estadisticas=estadisticas;}
     @Override protected boolean shouldNotFilter(HttpServletRequest r) {
-        return !"GET".equals(r.getMethod()) || !(r.getContextPath()+"/api/public/v1/lotes/ficha").equals(r.getRequestURI());
+        return !"GET".equals(r.getMethod()) || !((r.getContextPath()+"/api/public/v1/lotes/ficha").equals(r.getRequestURI())
+            || (r.getContextPath()+"/api/public/v1/territorio/consulta").equals(r.getRequestURI()));
     }
     @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
         boolean fallo=false;

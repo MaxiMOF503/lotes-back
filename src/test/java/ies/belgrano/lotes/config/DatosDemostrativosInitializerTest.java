@@ -46,6 +46,18 @@ class DatosDemostrativosInitializerTest {
 	@InjectMocks
 	private DatosDemostrativosInitializer initializer;
 
+	@org.junit.jupiter.api.BeforeEach
+    void activarDemo() { org.springframework.test.util.ReflectionTestUtils.setField(initializer, "habilitarDatosDemo", true); }
+
+    @Test void sinModoDemoSoloInicializaRolesNecesarios() {
+        org.springframework.test.util.ReflectionTestUtils.setField(initializer, "habilitarDatosDemo", false);
+        given(rolRepository.findByNombre(any(RolEntity.NombreRol.class))).willReturn(Optional.empty());
+        given(rolRepository.save(any(RolEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
+        initializer.run(null);
+        org.mockito.Mockito.verifyNoInteractions(loteRepository, departamentoRepository, usuarioRepository, lineaElectricaRepository);
+        verify(rolRepository, org.mockito.Mockito.times(2)).save(any(RolEntity.class));
+    }
+
 	@Test
 	void creaLosCincoConjuntosDeDatosDemostrativosConGeometriasSrid4326() {
 		given(rolRepository.findByNombre(any(RolEntity.NombreRol.class))).willReturn(Optional.empty());

@@ -1,37 +1,55 @@
-# Backend de consulta pública de lotes
+# LoteSeguro · backend
 
 Spring Boot 4.1.1, Java 21, Maven Wrapper, Spring MVC, Bean Validation y JPA/MySQL.
 
-El [mantenedor y las estadísticas](docs/mantenedor-estadisticas.md) agregan administración de lotes, acceso con rol ADMIN y contadores diarios anónimos. La guía explica cómo crear el administrador y conectar el frontend.
+## Instalar y presentar en otra PC
 
-El contrato de `GET /api/public/v1/lotes/ficha` está en [docs/contrato-ficha-publica.md](docs/contrato-ficha-publica.md). Incluye parámetros, todos los DTOs públicos, ejemplos y tratamiento de errores para el futuro frontend.
+La [guía de instalación local](docs/instalacion-local.md) explica requisitos, descarga de ambos proyectos, arranque y cuentas para el profesor y el equipo.
 
-## Ejecución
+En Windows, con JDK 21, MySQL 8.0.18+, cliente MySQL y Python 3.10+ instalados:
 
-Requiere Java 21 y MySQL 8+ con la base `verificador_lotes` creada. Configurar las variables `DB_URL` (por ejemplo `jdbc:mysql://localhost:3306/verificador_lotes?useSSL=false&serverTimezone=UTC`), `DB_USERNAME` y `DB_PASSWORD`. `JPA_DDL_AUTO` tiene valor predeterminado `update`.
+```powershell
+.\iniciar-local.cmd
+```
+
+El asistente crea la base local, importa las tres capas reales incluidas en data/ y arranca el backend en localhost:8080. Pide las credenciales de MySQL de esa PC y las contraseñas para demo.admin@loteseguro.invalid y demo.usuario@loteseguro.invalid. No guarda contraseñas en archivos. Cada instalación tiene su propia base.
+
+El [mapa territorial real](docs/datos-territoriales-reales.md) consulta parcelas catastrales, radio AYSAM y cercanía de tramos eléctricos. Expone procedencia y limitaciones: no confirma titularidad ni conexión de servicios.
+
+Los lotes ficticios son optativos; no se insertan en el arranque normal. Para utilizarlos, ejecutar `.\iniciar-local.cmd --con-ejemplos` o seguir la [guía de demostración](docs/demo-clase.md). No se borran los usuarios ni lotes existentes.
+
+## Ejecución manual
+
+Configurar DB_URL (por ejemplo jdbc:mysql://localhost:3306/verificador_lotes?useSSL=false&serverTimezone=UTC), DB_USERNAME y DB_PASSWORD. La base debe existir; JPA_DDL_AUTO tiene valor predeterminado update. Preparar las capas con `py -3 scripts/importar_territorio.py`, usando esa conexión.
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-El inicializador carga el lote `LOT-DEMO-001` y [la carga SQL de Luján de Cuyo](src/main/resources/data.sql) agrega diez lotes ficticios (`LOT-DEMO-LUJ-002` a `LOT-DEMO-LUJ-011`) al iniciar el backend. Los puntos indican localidades aproximadas: no son parcelas ni domicilios reales. La carga es reejecutable: omite identificadores existentes sin reemplazar sus datos, incluso si fueron editados o desactivados. Cada integrante necesita su propia base MySQL; después de actualizar el repositorio, debe iniciar el backend conectado a esa base para recibir los ejemplos. También puede ejecutar `src/main/resources/data.sql` manualmente en DBeaver sobre `verificador_lotes`. La ficha es simulada, sin valor oficial. Puerto predeterminado: 8080.
+Para habilitar ejemplos manualmente: DEMO_LOTES_ENABLED=true y DEMO_SQL_INIT_MODE=always. Las cuentas de clase se habilitan con DEMO_ACCOUNTS_ENABLED=true y contraseñas propias en DEMO_ADMIN_PASSWORD / DEMO_USER_PASSWORD. La guía de instalación describe estas opciones.
 
-Para presentar el proyecto con un administrador y un usuario de consulta, usar la [guía de demostración en clase](docs/demo-clase.md). El modo demo pide las contraseñas al iniciarse y no publica credenciales en el repositorio.
+## Contratos y funcionalidades
 
-Swagger UI: `/swagger-ui/index.html`. OpenAPI JSON: `/v3/api-docs`.
+- [Ficha pública de lote](docs/contrato-ficha-publica.md): parámetros, respuestas, errores y datos parciales; incluye dónde consultar y procedencia.
+- [Mantenedor y estadísticas](docs/mantenedor-estadisticas.md): administración de lotes, permisos y contadores diarios anónimos.
+- [Datos territoriales reales](docs/datos-territoriales-reales.md): importación, calidad, APIs espaciales y limitaciones.
+- Swagger UI: /swagger-ui/index.html. OpenAPI JSON: /v3/api-docs.
+
+La búsqueda por dirección o identificador sigue consultando los lotes registrados. El mapa consulta las parcelas importadas; no convierte automáticamente todo el catastro en lotes editables.
 
 ## Verificación
 
 ```powershell
 .\mvnw.cmd test
-.\mvnw.cmd "-Dtest=PublicLoteControllerTest,PublicLoteContractTest" test
+py -3 -m unittest discover -s scripts -p 'test_*.py' -v
 .\mvnw.cmd verify
 ```
 
-En Linux/macOS usar `./mvnw`. `verify` ejecuta tests y empaqueta el JAR. No hay lint ni Checkstyle configurado en el POM. Los tests habituales no requieren MySQL. El perfil opcional `mysql-it` prueba la aplicación completa y la consulta espacial contra MySQL 8 real; consultar [las instrucciones de integración](docs/integracion-mysql.md).
+Los tests habituales no necesitan MySQL. Para probar el cruce espacial contra MySQL real, importar las capas y configurar DB_*:
 
-La [propuesta de PR](docs/propuesta-pr.md) incluye las respuestas de integración. No requiere un frontend para compilar o probarse.
+```powershell
+$env:TERRITORIO_IT='true'
+.\mvnw.cmd -Pmysql-it "-Dit.test=TerritorioMySqlIT" verify
+```
 
-La ficha incluye `dondeConsultar`, con contacto, oficina, instrucciones y procedencia del departamento; los datos faltantes se conservan como null.
-
-Para probar el contrato contra la aplicación iniciada: [solicitudes HTTP](examples/ficha-publica.http) o `./examples/probar-ficha.ps1` (PowerShell 7). Para verificar también persistencia real, configurar las variables de la guía y ejecutar `./mvnw.cmd -Pmysql-it verify`.
+En Linux/macOS usar ./mvnw. verify ejecuta tests y empaqueta el JAR. El [perfil de integración MySQL](docs/integracion-mysql.md) contiene instrucciones adicionales. Para probar la ficha: [solicitudes HTTP](examples/ficha-publica.http) o examples/probar-ficha.ps1 (PowerShell 7).
