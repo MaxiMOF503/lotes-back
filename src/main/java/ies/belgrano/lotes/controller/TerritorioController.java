@@ -35,4 +35,11 @@ public class TerritorioController {
     public Consulta consultar(@RequestParam double latitud, @RequestParam double longitud) {
         return service.consultar(latitud, longitud);
     }
+    @GetMapping("/parcelas")
+    public TerritorioService.BusquedaParcelas buscarParcelas(@RequestParam String nomenclatura,
+            @RequestParam(defaultValue="0") int pagina) {
+        return service.buscarParcelas(nomenclatura,pagina);
+    }
+    @GetMapping("/parcelas/{id}")
+    public Feature parcela(@PathVariable String id){return service.parcela(id);}
 }

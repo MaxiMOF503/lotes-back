@@ -26,6 +26,11 @@ public class RestExceptionHandler {
     public ResponseEntity<ApiErrorResponse> operacion(OperacionInvalidaException e,HttpServletRequest r) {
         return ResponseEntity.status(e.status).body(new ApiErrorResponse(Instant.now(),e.status,e.codigo,e.getMessage(),r.getRequestURI(),List.of()));
     }
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> fichaConcurrente(Exception e,HttpServletRequest r) {
+        return ResponseEntity.status(409).body(new ApiErrorResponse(Instant.now(),409,"FICHA_MODIFICADA",
+            "Otra persona modificó la ficha. Recargala antes de guardar.",r.getRequestURI(),List.of()));
+    }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> conflicto(Exception e,HttpServletRequest r) {
         return ResponseEntity.status(409).body(new ApiErrorResponse(Instant.now(),409,"CONFLICTO_DATOS","Identificador duplicado o datos incompatibles",r.getRequestURI(),List.of()));

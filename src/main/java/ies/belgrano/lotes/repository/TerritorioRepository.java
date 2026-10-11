@@ -66,6 +66,29 @@ public class TerritorioRepository {
             "No se encontró un tramo publicado dentro del radio; no implica ausencia de servicio.") : rows.getFirst();
     }
 
+    public List<Feature> buscarParcelas(String prefijo,int limite,int offset) {
+        return features("""
+            SELECT origen_id, ST_AsGeoJSON(geometria) geometria_json, propiedades
+            FROM territorio_elementos
+            WHERE capa='catastro' AND valida=TRUE
+              AND JSON_UNQUOTE(JSON_EXTRACT(propiedades,'$.nomenclatu')) LIKE CONCAT(?,'%')
+            ORDER BY JSON_UNQUOTE(JSON_EXTRACT(propiedades,'$.nomenclatu')),origen_id LIMIT ? OFFSET ?
+            """, prefijo,limite,offset);
+    }
+    public java.util.Optional<Feature> parcela(String id) {
+        return features("""
+            SELECT origen_id, ST_AsGeoJSON(geometria) geometria_json, propiedades
+            FROM territorio_elementos WHERE capa='catastro' AND valida=TRUE AND origen_id=?
+            """,id).stream().findFirst();
+    }
+    public boolean pertenece(String id,String punto) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM territorio_elementos
+              WHERE capa='catastro' AND valida=TRUE AND origen_id=?
+              AND ST_Intersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat')))
+            """,Boolean.class,id,punto));
+    }
+
     private List<Feature> features(String sql, Object... args) {
         return jdbc.query(sql, (rs, row) -> new Feature("Feature", rs.getString("origen_id"),
             mapper.readTree(rs.getString("geometria_json")),
