@@ -43,7 +43,9 @@ public class SecurityConfig {
 						"/swagger-ui/**",
 						"/swagger-ui.html")
 				.permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/me")
+				.requestMatchers("/api/mi-espacio/**")
+                .hasAnyRole("ADMIN", "USUARIO")
+                .requestMatchers(HttpMethod.GET, "/api/me")
 				.authenticated()
 				.requestMatchers(HttpMethod.GET,
 						"/api/admin/lotes",

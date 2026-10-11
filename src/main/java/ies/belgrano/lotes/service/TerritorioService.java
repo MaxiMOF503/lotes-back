@@ -64,6 +64,22 @@ public class TerritorioService {
             + "La parcela no informa titularidad ni dominio. Verificá vigencia y factibilidad ante cada organismo.");
     }
 
+    public record BusquedaParcelas(List<Feature> items,int pagina,boolean hayMas) {}
+    public BusquedaParcelas buscarParcelas(String nomenclatura,int pagina) {
+        String prefijo=nomenclatura==null?"":nomenclatura.trim();
+        if(!prefijo.matches("[0-9]{3,30}") || pagina<0 || pagina>5000)
+            throw invalid("Ingresá entre 3 y 30 dígitos de nomenclatura y una página válida.");
+        fuente("catastro",fuentes());
+        var rows=repository.buscarParcelas(prefijo,21,pagina*20);
+        return new BusquedaParcelas(rows.stream().limit(20).toList(),pagina,rows.size()>20);
+    }
+    public Feature parcela(String id) {
+        if(id==null || !id.matches("[A-Za-z0-9._-]{1,100}"))throw invalid("Identificador de parcela inválido.");
+        fuente("catastro",fuentes());
+        return repository.parcela(id).orElseThrow(()->new OperacionInvalidaException(404,
+            "PARCELA_NO_ENCONTRADA","La parcela no tiene geometría válida en la importación actual."));
+    }
+
     private Fuente fuente(String capa, List<Fuente> fuentes) {
         return fuentes.stream().filter(f -> f.capa().equals(capa)).findFirst().orElseThrow(() ->
             new OperacionInvalidaException(503, "CAPA_NO_IMPORTADA", "La capa " + capa + " no fue importada."));

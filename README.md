@@ -30,6 +30,8 @@ Para habilitar ejemplos manualmente: DEMO_LOTES_ENABLED=true y DEMO_SQL_INIT_MOD
 
 ## Contratos y funcionalidades
 
+La [nueva área interna](docs/area-interna-real.md) vincula las fichas complementarias con el catastro real y agrega consultas guardadas privadas por cuenta. El mantenedor anterior se conserva.
+
 - [Ficha pública de lote](docs/contrato-ficha-publica.md): parámetros, respuestas, errores y datos parciales; incluye dónde consultar y procedencia.
 - [Mantenedor y estadísticas](docs/mantenedor-estadisticas.md): administración de lotes, permisos y contadores diarios anónimos.
 - [Datos territoriales reales](docs/datos-territoriales-reales.md): importación, calidad, APIs espaciales y limitaciones.
