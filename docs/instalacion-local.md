@@ -15,16 +15,16 @@ Mientras estos cambios estén en revisión, usar la rama publicada en ambos repo
 ```powershell
 New-Item -ItemType Directory -Force C:\LoteSeguro | Out-Null
 cd C:\LoteSeguro
-git clone --branch codex/datos-territoriales-reales https://github.com/MaxiMOF503/lotes-back.git
-git clone --branch codex/datos-territoriales-reales https://github.com/MaxiMOF503/lotes-front.git
+git clone --branch area-interna-parcelas-reales https://github.com/MaxiMOF503/lotes-back.git
+git clone --branch area-interna-parcelas-reales https://github.com/MaxiMOF503/lotes-front.git
 ```
 
 Si ya existen esas carpetas, no clonarlas encima ni borrar archivos. Revisar `git status` y conservar los cambios propios antes de cambiar de rama. Con una copia limpia, ejecutar en cada carpeta:
 
 ```powershell
 git fetch origin
-git switch codex/datos-territoriales-reales
-git pull --ff-only origin codex/datos-territoriales-reales
+git switch area-interna-parcelas-reales
+git pull --ff-only origin area-interna-parcelas-reales
 ```
 
 Git creará la rama local siguiendo la remota si todavía no existe. Una vez que los dos Pull Requests estén integrados, también se podrá usar `git switch main` y `git pull --ff-only origin main` en ambos proyectos.
