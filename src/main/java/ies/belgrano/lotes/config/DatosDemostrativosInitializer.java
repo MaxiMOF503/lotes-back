@@ -16,6 +16,7 @@ import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,9 @@ public class DatosDemostrativosInitializer implements ApplicationRunner {
 	private static final String FUENTE_DEMO = "Dataset demostrativo B-01";
 	private static final GeometryFactory GEOMETRY_FACTORY =
 			new GeometryFactory(new PrecisionModel(), 4326);
+
+	@Value("${demo.lotes.enabled:false}")
+    private boolean habilitarDatosDemo;
 
 	private final LoteRepository loteRepository;
 	private final DepartamentoRepository departamentoRepository;
@@ -57,6 +61,7 @@ public class DatosDemostrativosInitializer implements ApplicationRunner {
 	public void run(ApplicationArguments args) {
 		obtenerOCrearRol(RolEntity.NombreRol.ADMIN);
 		RolEntity rolUsuario = obtenerOCrearRol(RolEntity.NombreRol.USUARIO);
+        if (!habilitarDatosDemo) return;
 
 		if (!usuarioRepository.existsByEmail(EMAIL_USUARIO_DEMO)) {
 			usuarioRepository.save(new UsuarioEntity(
