@@ -2,21 +2,19 @@ package ies.belgrano.lotes.repository;
 
 import ies.belgrano.lotes.entity.LoteEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.List;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
-public interface LoteRepository extends JpaRepository<LoteEntity, Long> {
+public interface LoteRepository extends JpaRepository<LoteEntity, Long>, JpaSpecificationExecutor<LoteEntity> {
 
 	Optional<LoteEntity> findByIdentificador(String identificador);
 	Optional<LoteEntity> findByIdentificadorAndEliminadoFalse(String identificador);
 	Optional<LoteEntity> findByIdAndEliminadoFalse(Long id);
-	Page<LoteEntity> findByEliminadoFalse(Pageable pageable);
 
 	@Query(value = """
 			SELECT * FROM lotes

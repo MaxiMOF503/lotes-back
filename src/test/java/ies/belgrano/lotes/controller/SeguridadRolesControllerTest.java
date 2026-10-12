@@ -109,7 +109,7 @@ class SeguridadRolesControllerTest {
 
 		loteRequest = loteRequest();
 		var detalle = new LoteAdminService.Detalle(1L, loteRequest);
-		given(loteAdminService.listar(anyInt()))
+		given(loteAdminService.listar(anyInt(), anyInt(), any(), any(), any(), any(), any()))
 				.willReturn(new LoteAdminService.Pagina(List.of(), 0, 0, 0));
 		given(loteAdminService.obtener(anyLong())).willReturn(detalle);
 		given(loteAdminService.crear(any(LoteAdminRequest.class))).willReturn(detalle);

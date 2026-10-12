@@ -11,7 +11,16 @@ import org.springframework.http.HttpStatus;
 public class AdminLoteController {
     private final LoteAdminService service; private final DepartamentoRepository departamentos;
     public AdminLoteController(LoteAdminService service,DepartamentoRepository departamentos) {this.service=service;this.departamentos=departamentos;}
-    @GetMapping("/lotes") public LoteAdminService.Pagina listar(@RequestParam(defaultValue="0") int pagina) {return service.listar(pagina);}
+    @GetMapping("/lotes") public LoteAdminService.Pagina listar(
+        @RequestParam(defaultValue="0") int pagina,
+        @RequestParam(defaultValue="20") int tamanio,
+        @RequestParam(required=false) String identificador,
+        @RequestParam(required=false) String direccion,
+        @RequestParam(required=false) Long departamentoId,
+        @RequestParam(defaultValue="identificador") String ordenarPor,
+        @RequestParam(defaultValue="ASC") String direccionOrden) {
+        return service.listar(pagina,tamanio,identificador,direccion,departamentoId,ordenarPor,direccionOrden);
+    }
     @GetMapping("/lotes/{id}") public LoteAdminService.Detalle obtener(@PathVariable Long id) {return service.obtener(id);}
     @PostMapping("/lotes") public ResponseEntity<LoteAdminService.Detalle> crear(@Valid @RequestBody LoteAdminRequest r) {
         var lote=service.crear(r);return ResponseEntity.created(java.net.URI.create("/api/admin/lotes/"+lote.id())).body(lote);
