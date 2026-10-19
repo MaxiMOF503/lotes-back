@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS territorio_elementos (
  capa VARCHAR(24) NOT NULL, origen_id VARCHAR(100) NOT NULL,
  geometria GEOMETRY NOT NULL SRID 4326,
  propiedades JSON NOT NULL, valida BOOLEAN NOT NULL DEFAULT TRUE,
+ duplicado_de VARCHAR(100) NULL,
  PRIMARY KEY(capa,origen_id), SPATIAL INDEX territorio_geometria(geometria)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS territorio_fuentes (
@@ -100,6 +101,57 @@ def read_geojson(path):
         expression = "ST_GeomFromGeoJSON(" + sql_text(json.dumps(geometry, separators=(",", ":"))) + ",1,4326)"
         yield key, expression, props
 
+def copias_exactas(features):
+    """Devuelve {copia: original} para parcelas repetidas con la misma nomenclatura y geometría.
+
+    La fuente municipal publica algunas parcelas varias veces. Se conserva la primera
+    aparición y no se borran las copias: fichas, consultas guardadas e historial
+    pueden referirse a cualquiera de ellas por su origen_id.
+    """
+    originales, copias = {}, {}
+    for key, geometry, props in features:
+        if geometry is None:
+            continue
+        clave = (props.get("nomenclatu") or "", json.dumps(geometry, separators=(",", ":"), sort_keys=True))
+        if clave in originales:
+            copias[key] = originales[clave]
+        else:
+            originales[clave] = key
+    return copias
+
+def read_geojson_geometrias(path):
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8-sig") as source:
+        data = json.load(source)
+    for feature in data["features"]:
+        props = feature.get("properties") or {}
+        yield str(feature.get("id") or props.get("fid") or props.get("id")), feature["geometry"], props
+
+def asegurar_columna_duplicados():
+    # Bases importadas antes de detectar copias: agregar la columna sin reimportar.
+    existe = mysql("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() "
+                   "AND TABLE_NAME='territorio_elementos' AND COLUMN_NAME='duplicado_de';").strip()
+    if existe == "0":
+        mysql("ALTER TABLE territorio_elementos ADD COLUMN duplicado_de VARCHAR(100) NULL;")
+
+def marcar_copias(layer):
+    """Idempotente: se ejecuta en cada importación del catastro, aunque el archivo no cambie."""
+    path = ROOT / "data" / DATASETS[layer][0]
+    copias = copias_exactas(read_geojson_geometrias(path))
+    sql = ["START TRANSACTION;",
+           "UPDATE territorio_elementos SET duplicado_de=NULL WHERE capa=" + sql_text(layer) + ";"]
+    pares = sorted(copias.items())
+    for inicio in range(0, len(pares), 200):
+        casos = " ".join("WHEN " + sql_text(copia) + " THEN " + sql_text(original)
+                         for copia, original in pares[inicio:inicio + 200])
+        claves = ",".join(sql_text(copia) for copia, _ in pares[inicio:inicio + 200])
+        sql.append("UPDATE territorio_elementos SET duplicado_de=CASE origen_id " + casos
+                   + " END WHERE capa=" + sql_text(layer) + " AND origen_id IN (" + claves + ");")
+    sql.append("COMMIT;")
+    mysql("\n".join(sql))
+    print(f"{layer}: {len(copias)} copias exactas marcadas en {len(set(copias.values()))} parcelas "
+          "(se ocultan en el mapa y la búsqueda; no se borran).", flush=True)
+
 def mysql_command():
     jdbc = os.environ.get("DB_URL", "")
     url = urlparse(jdbc.removeprefix("jdbc:"))
@@ -131,6 +183,13 @@ def mysql(sql, file=None):
     return result.stdout.decode("utf8")
 
 def import_layer(layer, force=False):
+    # También lo usa iniciar_local.py: el marcado de copias va acá para que ningún camino lo saltee.
+    cargar_capa(layer, force)
+    if layer == "catastro":
+        asegurar_columna_duplicados()
+        marcar_copias(layer)
+
+def cargar_capa(layer, force=False):
     relative, expected, source, url = DATASETS[layer]
     path = ROOT / "data" / relative
     checksum = hashlib.sha256(path.read_bytes()).hexdigest()
