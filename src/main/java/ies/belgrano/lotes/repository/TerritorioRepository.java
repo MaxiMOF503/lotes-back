@@ -8,8 +8,10 @@ import java.util.List;
 
 @Repository
 public class TerritorioRepository {
+    private static final String SIN_COPIAS = "/*sin_copias*/";
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
+    private volatile boolean columnaCopias;
     public TerritorioRepository(JdbcTemplate jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
         this.mapper = mapper;
@@ -29,6 +31,7 @@ public class TerritorioRepository {
             SELECT origen_id, ST_AsGeoJSON(geometria) geometria_json, propiedades
             FROM territorio_elementos FORCE INDEX (territorio_geometria)
             WHERE capa=? AND valida=TRUE AND MBRIntersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat'))
+              /*sin_copias*/
             ORDER BY origen_id LIMIT ?
             """, capa, bounds, limite);
     }
@@ -40,6 +43,7 @@ public class TerritorioRepository {
             WHERE capa='catastro' AND valida=TRUE
               AND MBRIntersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat'))
               AND ST_Intersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat'))
+              /*sin_copias*/
             ORDER BY origen_id LIMIT ?
             """, punto, punto, limite);
     }
@@ -72,6 +76,7 @@ public class TerritorioRepository {
             FROM territorio_elementos
             WHERE capa='catastro' AND valida=TRUE
               AND JSON_UNQUOTE(JSON_EXTRACT(propiedades,'$.nomenclatu')) LIKE CONCAT(?,'%')
+              /*sin_copias*/
             ORDER BY JSON_UNQUOTE(JSON_EXTRACT(propiedades,'$.nomenclatu')),origen_id LIMIT ? OFFSET ?
             """, prefijo,limite,offset);
     }
@@ -89,7 +94,21 @@ public class TerritorioRepository {
             """,Boolean.class,id,punto));
     }
 
+    /**
+     * La fuente municipal repite algunas parcelas; el importador marca las copias en duplicado_de.
+     * Las búsquedas las ocultan, pero parcela(id) las sigue resolviendo para no romper fichas,
+     * consultas guardadas ni historial. Sin la columna (importación anterior) no se filtra.
+     */
+    private String filtroCopias() {
+        if (!columnaCopias) columnaCopias = Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT COUNT(*)>0 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()
+              AND TABLE_NAME='territorio_elementos' AND COLUMN_NAME='duplicado_de'
+            """, Boolean.class));
+        return columnaCopias ? "AND duplicado_de IS NULL" : "";
+    }
+
     private List<Feature> features(String sql, Object... args) {
+        if (sql.contains(SIN_COPIAS)) sql = sql.replace(SIN_COPIAS, filtroCopias());
         return jdbc.query(sql, (rs, row) -> new Feature("Feature", rs.getString("origen_id"),
             mapper.readTree(rs.getString("geometria_json")),
             mapper.readTree(rs.getString("propiedades"))), args);

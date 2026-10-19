@@ -31,6 +31,20 @@ class TerritorioMySqlIT {
         assertThat(result.dentroRadioAgua()).isFalse();
         assertThat(result.electricidad().distanciaMetros()).isNull();
     }
+    @Test void parcelaRepetidaEnLaFuenteSeDevuelveUnaSolaVez() {
+        // La fuente municipal publica 060103004400002700000 ocho veces con la misma geometría.
+        var consulta=service.consultar(-33.03834643,-68.88022263);
+        assertThat(consulta.parcelas()).hasSize(1);
+        assertThat(consulta.hayMasParcelas()).isFalse();
+        assertThat(consulta.parcelas().getFirst().id()).isEqualTo("Parcelas_visor0.55136");
+        var busqueda=service.buscarParcelas("060103004400002700000",0);
+        assertThat(busqueda.items()).extracting(f->f.id()).containsExactly("Parcelas_visor0.55136");
+    }
+    @Test void copiaRepetidaSigueDisponiblePorSuIdentificador() {
+        // Fichas, consultas guardadas o historial pueden referirse a una copia.
+        assertThat(service.parcela("Parcelas_visor0.55137").properties().get("nomenclatu").asText())
+            .isEqualTo("060103004400002700000");
+    }
     @Test void ventanaRespetaLimiteYConservaOrdenGeojsonLongitudLatitud() {
         var result=service.capa("catastro",-68.9,-33.074,-68.888,-33.065,16,10);
         assertThat(result.features()).hasSize(10);

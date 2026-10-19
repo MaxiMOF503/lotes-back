@@ -8,6 +8,8 @@ Se conectan los archivos existentes de `data/` a MySQL y al mapa actual. No se c
 - **Electricidad:** 13.494 tramos EDEMSA (el 13.495 del README original corresponde al siguiente AUTO_INCREMENT). Se muestra la traza y el tramo más cercano **hasta 1.000 metros** del punto consultado, con distancia geodésica WGS84. No confirma acometida, potencia disponible ni factibilidad.
 - **Agua:** dos polígonos del radio general de AYSAM. Un punto dentro o en el límite pertenece al radio publicado. Estar fuera no significa carecer de agua: puede haber otros operadores. No se dispone de cañerías calle por calle.
 
+**Parcelas repetidas en la fuente:** el archivo municipal publica 94 parcelas más de una vez con la misma nomenclatura y la misma geometría (605 copias en total; por ejemplo, `060103004400002700000` aparece 8 veces). El importador conserva la primera aparición y marca las demás en la columna `duplicado_de` con el `origen_id` original. El clic en el mapa, la capa de parcelas y la búsqueda por nomenclatura ocultan las copias. No se borran: `GET /parcelas/{id}` las sigue resolviendo, porque fichas, consultas guardadas e historial pueden referirse a cualquiera de ellas. Parcelas con la misma nomenclatura pero distinta geometría no se consideran copias.
+
 Nomenclatura, zonificación, superficie, frente, FOS y ordenanza son los valores publicados de la parcela. No se deduce titularidad, dominio público/privado ni dirección a partir de campos vacíos.
 
 ## Importar en otra PC
@@ -25,6 +27,8 @@ py -3 scripts/importar_territorio.py
 ```
 
 Se crean `territorio_elementos`, `territorio_sin_geometria` y `territorio_fuentes`. Hay índice espacial, claves de origen y propiedades JSON. Cada capa se carga en una transacción. Repetir la ejecución reconoce el SHA256 y no duplica datos. `--capa catastro`, `--capa electricidad` o `--capa aysam` permiten importar una capa; `--forzar` reimporta el mismo archivo.
+
+En cada ejecución sobre el catastro se vuelven a marcar las copias exactas, aunque el archivo no haya cambiado (tarda unos segundos). **Si tu base ya estaba importada antes de este cambio**, alcanza con iniciar como siempre (`.\iniciar-local.cmd`) o correr `py -3 scripts/importar_territorio.py --capa catastro` una vez y reiniciar el backend: agrega la columna `duplicado_de` y marca las copias sin reimportar. Mientras no se ejecute, el backend sigue funcionando como antes (sin ocultar copias).
 
 **No ejecutar el dump eléctrico completo:** contiene DROP TABLE y otras tablas de la aplicación. El importador extrae exclusivamente las filas eléctricas, recupera la codificación OEM del dump incluido y establece explícitamente el orden longitud/latitud. Los lotes registrados, usuarios y roles permanecen en sus tablas originales.
 

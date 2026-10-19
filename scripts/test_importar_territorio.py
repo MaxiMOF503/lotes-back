@@ -23,6 +23,22 @@ class ImportadorTest(unittest.TestCase):
         self.assertEqual(sum(geometry is None for _, geometry, _ in rows), 25)
         self.assertEqual(rows[0][2]["nomenclatu"], "060406000300002300007")
 
+    def test_catastro_detecta_copias_exactas_y_conserva_la_primera(self):
+        path = importer.ROOT / "data" / importer.DATASETS["catastro"][0]
+        copias = importer.copias_exactas(importer.read_geojson_geometrias(path))
+        self.assertEqual(len(copias), 605)
+        self.assertEqual(len(set(copias.values())), 94)
+        repetidas = sorted(copia for copia, original in copias.items() if original == "Parcelas_visor0.55136")
+        self.assertEqual(len(repetidas), 7)
+        self.assertNotIn("Parcelas_visor0.55136", copias)
+
+    def test_misma_nomenclatura_con_otra_geometria_no_es_copia(self):
+        cuadrado = {"type": "MultiPolygon", "coordinates": [[[[0, 0], [1, 0], [1, 1], [0, 0]]]]}
+        otro = {"type": "MultiPolygon", "coordinates": [[[[2, 2], [3, 2], [3, 3], [2, 2]]]]}
+        features = [("a", cuadrado, {"nomenclatu": "0601"}), ("b", otro, {"nomenclatu": "0601"}),
+                    ("c", cuadrado, {"nomenclatu": "0601"}), ("d", None, {"nomenclatu": "0601"})]
+        self.assertEqual(importer.copias_exactas(features), {"c": "a"})
+
     def test_escapes_no_alteran_binario_ni_acentos(self):
         self.assertEqual(importer.unescape(b"\\0\\n\\r\\b\\t\\Z\\\\\\'"), bytes([0,10,13,8,9,26,92,39]))
         self.assertEqual(importer.sql_text("Luján"), "CONVERT(0x4c756ac3a16e USING utf8mb4)")
