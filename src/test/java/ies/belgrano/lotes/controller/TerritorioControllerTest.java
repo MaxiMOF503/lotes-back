@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TerritorioControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean TerritorioService service;
+    @MockitoBean ies.belgrano.lotes.service.DireccionService direcciones;
     @MockitoBean org.springframework.security.core.userdetails.UserDetailsService autenticacion;
     @MockitoBean ies.belgrano.lotes.service.EstadisticaService estadisticas;
 
@@ -36,5 +37,18 @@ class TerritorioControllerTest {
         mvc.perform(get("/api/public/v1/territorio/consulta").param("latitud","-33")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/public/v1/territorio/consulta").param("latitud","texto").param("longitud","-68.9")).andExpect(status().isBadRequest());
         verifyNoInteractions(service);
+    }
+    @Test void direccionesYParcelasCercanasSonPublicasYNoCuentanComoConsultas() throws Exception {
+        mvc.perform(get("/api/public/v1/territorio/direcciones").param("texto","San Martin 1500")).andExpect(status().isOk());
+        verify(direcciones).buscar("San Martin 1500");
+        mvc.perform(get("/api/public/v1/territorio/parcelas/cercanas").param("latitud","-33.03").param("longitud","-68.87"))
+            .andExpect(status().isOk());
+        verify(service).cercanas(-33.03,-68.87,30);
+        verify(service,never()).parcela("cercanas");
+        verifyNoInteractions(estadisticas);
+    }
+    @Test void direccionesSinTextoDevuelve400() throws Exception {
+        mvc.perform(get("/api/public/v1/territorio/direcciones")).andExpect(status().isBadRequest());
+        verifyNoInteractions(direcciones);
     }
 }

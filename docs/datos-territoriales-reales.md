@@ -54,6 +54,17 @@ Los datos ficticios no se insertan en el arranque normal. Para una clase demostr
 - `GET /api/public/v1/territorio/fuentes`: fuentes, recuentos, calidad y fecha de importación.
 - `GET /api/public/v1/territorio/capas/{catastro|electricidad|aysam}?oeste=-68.9&sur=-33.074&este=-68.888&norte=-33.065&zoom=16&limite=500`: FeatureCollection, `hayMas`, `acercar`, fuente y mensaje. Límite máximo 1.000.
 - `GET /api/public/v1/territorio/consulta?latitud=-33.0688&longitud=-68.8929`: hasta cinco parcelas coincidentes (incluye límites), radio de agua y distancia eléctrica.
+- `GET /api/public/v1/territorio/direcciones?texto=San Martín 1500`: direcciones normalizadas por Georef (calle y número, o `calle esquina calle`) con su ubicación aproximada, más las direcciones relevadas por el equipo en las fichas complementarias (origen `FICHA`, con su parcela).
+- `GET /api/public/v1/territorio/parcelas/cercanas?latitud=-33.02626&longitud=-68.87491&radio=30`: parcelas a menos de `radio` metros (5 a 100, por defecto 30), de la más cercana a la más lejana, sin copias repetidas.
+
+## Direcciones (Georef)
+
+El catastro no trae direcciones. Para buscar por calle y número o por esquina se usa [Georef](https://www.argentina.gob.ar/georef), el servicio oficial de normalización de direcciones del Gobierno nacional: gratuito, sin clave, limitado a Mendoza y Luján de Cuyo.
+
+- La ubicación es **aproximada**: Georef la calcula sobre el eje de la calle, no dentro de un lote. Por eso el punto se usa para buscar las parcelas cercanas y la persona elige la correcta en el mapa.
+- No se guarda ni se registra en el log el texto buscado.
+- Si Georef no responde (5 s como máximo), la API devuelve 503 `DIRECCIONES_NO_DISPONIBLES`; si hay direcciones relevadas en fichas, se devuelven igual con un aviso.
+- La URL se puede cambiar con la variable `GEOREF_URL` (por defecto `https://apis.datos.gob.ar/georef/api`). Los tests usan respuestas reales grabadas y no dependen de internet.
 
 Las geometrías usan SRID 4326; GeoJSON sale como [longitud, latitud]. Los parámetros se validan y las consultas SQL usan argumentos enlazados. No se agregan APIs de escritura para estas capas.
 

@@ -95,6 +95,25 @@ public class TerritorioRepository {
     }
 
     /**
+     * Parcelas a menos de {@code radio} metros del punto, de la más cercana a la más lejana.
+     * Un punto de Georef cae sobre el eje de la calle, no dentro de una parcela: por eso se busca alrededor.
+     */
+    public List<Cercana> cercanas(String punto, String bounds, double radio, int limite) {
+        String sql = """
+            SELECT origen_id, ST_AsGeoJSON(geometria) geometria_json, propiedades,
+              ST_Distance(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat')) distancia
+            FROM territorio_elementos FORCE INDEX (territorio_geometria)
+            WHERE capa='catastro' AND valida=TRUE
+              AND MBRIntersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat'))
+              /*sin_copias*/
+            HAVING distancia <= ? ORDER BY distancia,origen_id LIMIT ?
+            """.replace(SIN_COPIAS, filtroCopias());
+        return jdbc.query(sql, (rs, row) -> new Cercana(new Feature("Feature", rs.getString("origen_id"),
+            mapper.readTree(rs.getString("geometria_json")), mapper.readTree(rs.getString("propiedades"))),
+            Math.round(rs.getDouble("distancia") * 10.0) / 10.0), punto, bounds, radio, limite);
+    }
+
+    /**
      * La fuente municipal repite algunas parcelas; el importador marca las copias en duplicado_de.
      * Las búsquedas las ocultan, pero parcela(id) las sigue resolviendo para no romper fichas,
      * consultas guardadas ni historial. Sin la columna (importación anterior) no se filtra.

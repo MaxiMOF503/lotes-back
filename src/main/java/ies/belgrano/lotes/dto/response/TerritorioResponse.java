@@ -13,6 +13,9 @@ public final class TerritorioResponse {
                        boolean acercar, String mensaje) {}
     public record Electricidad(Double distanciaMetros, String tipo, int radioBusquedaMetros,
                                String alcance) {}
+    /** Parcela a cierta distancia de un punto, en metros sobre WGS84. */
+    public record Cercana(Feature parcela, double distanciaMetros) {}
+    public record Cercanas(double latitud, double longitud, int radioMetros, List<Cercana> parcelas) {}
     public record Consulta(double latitud, double longitud, List<Feature> parcelas,
                            boolean hayMasParcelas, boolean dentroRadioAgua,
                            Electricidad electricidad, List<Fuente> fuentes, String advertencia) {}
