@@ -73,6 +73,18 @@ public class TerritorioService {
         var rows=repository.buscarParcelas(prefijo,21,pagina*20);
         return new BusquedaParcelas(rows.stream().limit(20).toList(),pagina,rows.size()>20);
     }
+    /** Parcelas alrededor de un punto aproximado (por ejemplo, el que devuelve Georef sobre el eje de la calle). */
+    public Cercanas cercanas(double latitud, double longitud, int radio) {
+        validarPunto(latitud, longitud);
+        if (radio < 5 || radio > 100) throw invalid("El radio debe estar entre 5 y 100 metros.");
+        fuente("catastro", fuentes());
+        // Ventana un poco mayor que el radio para usar el índice espacial; la distancia final es en metros sobre WGS84.
+        double margenLat = radio * 1.2 / 111_320.0;
+        double margenLon = margenLat / Math.max(0.01, Math.cos(Math.toRadians(latitud)));
+        String bounds = bounds(longitud - margenLon, latitud - margenLat, longitud + margenLon, latitud + margenLat);
+        return new Cercanas(latitud, longitud, radio,
+            repository.cercanas("POINT(" + longitud + " " + latitud + ")", bounds, radio, 10));
+    }
     public Feature parcela(String id) {
         if(id==null || !id.matches("[A-Za-z0-9._-]{1,100}"))throw invalid("Identificador de parcela inválido.");
         fuente("catastro",fuentes());

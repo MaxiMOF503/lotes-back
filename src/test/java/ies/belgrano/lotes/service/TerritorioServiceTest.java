@@ -60,4 +60,19 @@ class TerritorioServiceTest {
         verify(repository).dentroAgua("POINT(-68.9 -33.0)");
         assertThat(result.advertencia()).contains("no confirman una conexión");
     }
+    @Test void cercanasRechazaRadiosFueraDeRangoSinConsultarLaBase() {
+        assertThatThrownBy(() -> service.cercanas(-33.03,-68.87,4)).isInstanceOf(OperacionInvalidaException.class);
+        assertThatThrownBy(() -> service.cercanas(-33.03,-68.87,101)).isInstanceOf(OperacionInvalidaException.class);
+        verifyNoInteractions(repository);
+    }
+    @Test void cercanasBuscaAlrededorDelPuntoConUnaVentanaApenasMayorQueElRadio() {
+        when(repository.fuentes()).thenReturn(List.of(fuente("catastro")));
+        when(repository.cercanas(anyString(),anyString(),eq(30.0),eq(10))).thenReturn(List.of());
+        Cercanas result=service.cercanas(-33.0262588845649,-68.8749132362673,30);
+        assertThat(result.radioMetros()).isEqualTo(30);
+        var ventana=ArgumentCaptor.forClass(String.class);
+        verify(repository).cercanas(eq("POINT(-68.8749132362673 -33.0262588845649)"),ventana.capture(),eq(30.0),eq(10));
+        // 30 m con margen: unas 3 diezmilésimas de grado de latitud a cada lado, no una ventana de kilómetros.
+        assertThat(ventana.getValue()).startsWith("POLYGON((-68.875").contains(" -33.0265");
+    }
 }

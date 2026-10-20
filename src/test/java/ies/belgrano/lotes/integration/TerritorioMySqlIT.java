@@ -45,6 +45,18 @@ class TerritorioMySqlIT {
         assertThat(service.parcela("Parcelas_visor0.55137").properties().get("nomenclatu").asText())
             .isEqualTo("060103004400002700000");
     }
+    @Test void parcelasCercanasAlPuntoDeGeorefVanDeLaMasCercanaALaMasLejanaSinCopias() {
+        // Punto que Georef devuelve para "San Martín 1500": cae sobre la calle, no dentro de una parcela.
+        assertThat(service.consultar(-33.0262588845649,-68.8749132362673).parcelas()).isEmpty();
+        var cercanas=service.cercanas(-33.0262588845649,-68.8749132362673,30).parcelas();
+        assertThat(cercanas).isNotEmpty().allSatisfy(c -> assertThat(c.distanciaMetros()).isBetween(0.0,30.0));
+        assertThat(cercanas).extracting(c -> c.distanciaMetros()).isSorted();
+        assertThat(cercanas.getFirst().distanciaMetros()).isBetween(8.0,15.0);
+        // Esquina San Martín y Sáenz Peña: la parcela repetida en la fuente aparece una sola vez.
+        var esquina=service.cercanas(-33.0385356569091,-68.8800290274383,30).parcelas();
+        assertThat(esquina).filteredOn(c -> c.parcela().properties().get("nomenclatu").asText().equals("060103004400002700000"))
+            .singleElement().satisfies(c -> assertThat(c.distanciaMetros()).isBetween(12.0,18.0));
+    }
     @Test void ventanaRespetaLimiteYConservaOrdenGeojsonLongitudLatitud() {
         var result=service.capa("catastro",-68.9,-33.074,-68.888,-33.065,16,10);
         assertThat(result.features()).hasSize(10);
