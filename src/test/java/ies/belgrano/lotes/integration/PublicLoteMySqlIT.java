@@ -54,6 +54,9 @@ class PublicLoteMySqlIT {
         registry.add("spring.datasource.username", () -> user);
         registry.add("spring.datasource.password", () -> password == null ? "" : password);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        // El lote histórico existe únicamente en esta base descartable. Las pruebas
+        // territoriales y el arranque normal mantienen los datos demo deshabilitados.
+        registry.add("demo.lotes.enabled", () -> "true");
     }
 
     @Test
