@@ -11,7 +11,7 @@
 
 ## Preparación y ejecución
 
-Requiere Java 21, MySQL 8 y las variables DB_URL, DB_USERNAME y DB_PASSWORD del README. En una base de desarrollo, el valor predeterminado JPA_DDL_AUTO=update agrega las columnas de procedencia a lotes y crea estadisticas_diarias. No usar create-drop con datos reales. Si se utiliza validate, preparar previamente una migración de esquema revisada para esas columnas y tabla; este cambio no incorpora un gestor de migraciones.
+Requiere Java 21, MySQL 8 y las variables DB_URL, DB_USERNAME y DB_PASSWORD del README. Las columnas de procedencia de lotes y la tabla estadisticas_diarias las crea la migración V1 de Flyway ([migraciones](migraciones-flyway.md)); Hibernate trabaja en validate. No usar create-drop con datos reales.
 
 Para crear el primer administrador, configurar ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 12 caracteres) en el entorno y ejecutar:
 

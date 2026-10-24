@@ -81,7 +81,7 @@ jobs:
       MYSQL_IT_PASSWORD: ci-root-password
       MYSQL_PWD: ci-root-password
       TERRITORIO_IT: 'true'
-      JPA_DDL_AUTO: update
+      JPA_DDL_AUTO: validate
       DEMO_LOTES_ENABLED: 'false'
       DEMO_SQL_INIT_MODE: never
       DEMO_ACCOUNTS_ENABLED: 'false'
@@ -111,7 +111,9 @@ jobs:
           mysql --version
 
       - name: Preparar bases aisladas
-        run: mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE lotes_ficha_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+        run: |
+          mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE lotes_ficha_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+          mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE lotes_flyway_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
 
       - name: Importar capas territoriales reales
         run: python scripts/importar_territorio.py

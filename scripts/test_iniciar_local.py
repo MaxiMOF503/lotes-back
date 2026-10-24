@@ -41,6 +41,7 @@ class ArranqueLocalTest(unittest.TestCase):
              patch.object(launcher.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
             launcher.main()
             env = run.call_args.kwargs["env"]
+            self.assertEqual(env["JPA_DDL_AUTO"], "validate")
             self.assertEqual(env["DEMO_LOTES_ENABLED"], "false")
             self.assertEqual(env["DEMO_SQL_INIT_MODE"], "never")
             self.assertEqual(env["DEMO_ACCOUNTS_ENABLED"], "true")

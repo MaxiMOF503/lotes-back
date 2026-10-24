@@ -39,6 +39,13 @@ class ImportadorTest(unittest.TestCase):
                     ("c", cuadrado, {"nomenclatu": "0601"}), ("d", None, {"nomenclatu": "0601"})]
         self.assertEqual(importer.copias_exactas(features), {"c": "a"})
 
+    def test_esquema_territorial_sale_de_la_migracion_de_flyway(self):
+        self.assertTrue(importer.MIGRACION_TERRITORIO.is_file())
+        for tabla in ("territorio_elementos", "territorio_fuentes", "territorio_sin_geometria"):
+            self.assertIn("CREATE TABLE IF NOT EXISTS " + tabla, importer.SCHEMA)
+        self.assertIn("duplicado_de", importer.SCHEMA)
+        self.assertNotIn("DROP ", importer.SCHEMA.upper())
+
     def test_escapes_no_alteran_binario_ni_acentos(self):
         self.assertEqual(importer.unescape(b"\\0\\n\\r\\b\\t\\Z\\\\\\'"), bytes([0,10,13,8,9,26,92,39]))
         self.assertEqual(importer.sql_text("Luján"), "CONVERT(0x4c756ac3a16e USING utf8mb4)")

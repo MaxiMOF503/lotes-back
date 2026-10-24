@@ -8,7 +8,7 @@ El perfil `mysql-it` ejecuta `PublicLoteMySqlIT` con la aplicación completa, in
 - Una **base descartable y exclusiva** llamada `lotes_ficha_test`, creada antes de ejecutar.
 - Un usuario con permisos sobre esa base para crear y eliminar tablas y operar con los datos.
 
-El test configura `ddl-auto=create-drop`: reemplaza las tablas de la base indicada y las elimina al cerrar el contexto. Nunca usar una base con datos que deban conservarse. La configuración comprueba el nombre exacto `lotes_ficha_test` antes de iniciar JPA y no toma las credenciales `DB_*` de la aplicación.
+El test desactiva Flyway y configura `ddl-auto=create-drop`: reemplaza las tablas de la base indicada y las elimina al cerrar el contexto. Nunca usar una base con datos que deban conservarse. La configuración comprueba el nombre exacto `lotes_ficha_test` antes de iniciar JPA y no toma las credenciales `DB_*` de la aplicación.
 
 ## Ejecutar
 
@@ -24,6 +24,8 @@ $env:MYSQL_IT_PASSWORD = '<contraseña local>'
 Si falta la URL o el usuario, o MySQL no responde, el perfil falla: no omite silenciosamente la integración. `MYSQL_IT_PASSWORD` puede omitirse sólo si la instancia de pruebas acepta contraseña vacía. En Linux/macOS exportar las mismas variables y ejecutar `./mvnw -Pmysql-it verify`.
 
 `./mvnw.cmd verify` conserva el ciclo normal de tests sin requerir MySQL; las clases terminadas en `IT` se ejecutan mediante Failsafe únicamente al activar `mysql-it`. Los informes quedan en `target/failsafe-reports` y `target/surefire-reports`.
+
+Las migraciones se prueban aparte en `MigracionesFlywayMySqlIT`, sobre otra base descartable llamada `lotes_flyway_test` (mismo servidor y credenciales `MYSQL_IT_*`; crearla igual que `lotes_ficha_test`). Esa prueba **vacía** la base antes de cada caso. Ver [migraciones](migraciones-flyway.md).
 
 ## Cobertura
 

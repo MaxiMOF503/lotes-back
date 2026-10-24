@@ -26,9 +26,9 @@ Desde la raíz del backend:
 py -3 scripts/importar_territorio.py
 ```
 
-Se crean `territorio_elementos`, `territorio_sin_geometria` y `territorio_fuentes`. Hay índice espacial, claves de origen y propiedades JSON. Cada capa se carga en una transacción. Repetir la ejecución reconoce el SHA256 y no duplica datos. `--capa catastro`, `--capa electricidad` o `--capa aysam` permiten importar una capa; `--forzar` reimporta el mismo archivo.
+Se crean `territorio_elementos`, `territorio_sin_geometria` y `territorio_fuentes` con la migración `V2__capas_territoriales.sql` de Flyway, que el importador ejecuta antes de cargar (una sola definición; ver [migraciones](migraciones-flyway.md)). Hay índice espacial, claves de origen y propiedades JSON. Cada capa se carga en una transacción. Repetir la ejecución reconoce el SHA256 y no duplica datos. `--capa catastro`, `--capa electricidad` o `--capa aysam` permiten importar una capa; `--forzar` reimporta el mismo archivo.
 
-En cada ejecución sobre el catastro se vuelven a marcar las copias exactas, aunque el archivo no haya cambiado (tarda unos segundos). **Si tu base ya estaba importada antes de este cambio**, alcanza con iniciar como siempre (`.\iniciar-local.cmd`) o correr `py -3 scripts/importar_territorio.py --capa catastro` una vez y reiniciar el backend: agrega la columna `duplicado_de` y marca las copias sin reimportar. Mientras no se ejecute, el backend sigue funcionando como antes (sin ocultar copias).
+En cada ejecución sobre el catastro se vuelven a marcar las copias exactas, aunque el archivo no haya cambiado (tarda unos segundos). **Si tu base ya estaba importada antes de este cambio**, alcanza con iniciar como siempre (`.\iniciar-local.cmd`) o correr `py -3 scripts/importar_territorio.py --capa catastro` una vez y reiniciar el backend: se agrega la columna `duplicado_de` (migración V2) y se marcan las copias sin reimportar. Mientras no se ejecute, el backend sigue funcionando como antes (sin ocultar copias).
 
 **No ejecutar el dump eléctrico completo:** contiene DROP TABLE y otras tablas de la aplicación. El importador extrae exclusivamente las filas eléctricas, recupera la codificación OEM del dump incluido y establece explícitamente el orden longitud/latitud. Los lotes registrados, usuarios y roles permanecen en sus tablas originales.
 
