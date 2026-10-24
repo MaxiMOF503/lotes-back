@@ -38,14 +38,16 @@ class TerritorioControllerTest {
         mvc.perform(get("/api/public/v1/territorio/consulta").param("latitud","texto").param("longitud","-68.9")).andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
-    @Test void direccionesYParcelasCercanasSonPublicasYNoCuentanComoConsultas() throws Exception {
+    @Test void direccionesSonPublicasYSoloLasParcelasCercanasCuentanComoConsultaPorDireccion() throws Exception {
         mvc.perform(get("/api/public/v1/territorio/direcciones").param("texto","San Martin 1500")).andExpect(status().isOk());
         verify(direcciones).buscar("San Martin 1500");
         mvc.perform(get("/api/public/v1/territorio/parcelas/cercanas").param("latitud","-33.03").param("longitud","-68.87"))
             .andExpect(status().isOk());
         verify(service).cercanas(-33.03,-68.87,30);
         verify(service,never()).parcela("cercanas");
-        verifyNoInteractions(estadisticas);
+        // Las sugerencias mientras se escribe no cuentan; elegir una dirección y buscar sus parcelas, sí.
+        verify(estadisticas).registrar("CONSULTA","DIRECCION","EXITO");
+        verifyNoMoreInteractions(estadisticas);
     }
     @Test void direccionesSinTextoDevuelve400() throws Exception {
         mvc.perform(get("/api/public/v1/territorio/direcciones")).andExpect(status().isBadRequest());

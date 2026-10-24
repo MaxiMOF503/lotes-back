@@ -65,6 +65,16 @@ def verificar_puerto(puerto):
         if sock.connect_ex(("127.0.0.1", puerto)) == 0:
             raise ValueError(f"El puerto {puerto} ya está ocupado. Detené tu otra instancia del backend antes de iniciar esta.")
 
+CORREO = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+def correo_admin():
+    correo = os.environ.get("ADMIN_EMAIL", "").strip()
+    while not CORREO.fullmatch(correo):
+        correo = input("Correo del administrador: ").strip()
+        if not CORREO.fullmatch(correo):
+            print("Ingresá un correo válido, por ejemplo nombre@organizacion.com.")
+    return correo
+
 def password_cuenta(variable, etiqueta):
     password = os.environ.get(variable)
     while not password or len(password) < 12 or len(password.encode("utf8")) > 72:
@@ -76,8 +86,7 @@ def password_cuenta(variable, etiqueta):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preparar-solo", action="store_true", help="Crear base e importar capas; no iniciar backend ni crear cuentas")
-    parser.add_argument("--sin-cuentas-prueba", action="store_true", help="Iniciar solo con las cuentas que ya existan o la configuración ADMIN_*")
-    parser.add_argument("--con-ejemplos", action="store_true", help="Activar también los lotes ficticios; por defecto se usan las capas reales")
+    parser.add_argument("--sin-admin", action="store_true", help="Iniciar sin pedir ni crear un administrador: se usan las cuentas que ya existan o la configuración ADMIN_*")
     args = parser.parse_args()
     if sys.version_info < (3, 10):
         raise ValueError("Se requiere Python 3.10 o posterior.")
@@ -96,17 +105,12 @@ def main():
     env["SERVER_PORT"] = "8080"
     # Escucha local para la presentación; no abre el administrador a otras PCs.
     env["SERVER_ADDRESS"] = "127.0.0.1"
-    env["DEMO_LOTES_ENABLED"] = "true" if args.con_ejemplos else "false"
-    env["DEMO_SQL_INIT_MODE"] = "always" if args.con_ejemplos else "never"
-    env["DEMO_ACCOUNTS_ENABLED"] = "false" if args.sin_cuentas_prueba else "true"
-    if not args.sin_cuentas_prueba:
-        env["DEMO_ADMIN_PASSWORD"] = password_cuenta("DEMO_ADMIN_PASSWORD", "demo.admin")
-        env["DEMO_USER_PASSWORD"] = password_cuenta("DEMO_USER_PASSWORD", "demo.usuario")
-        for key in ("ADMIN_EMAIL", "ADMIN_PASSWORD", "USUARIO_EMAIL", "USUARIO_PASSWORD"):
-            env[key] = ""
-        print("ADMIN: demo.admin@loteseguro.invalid")
-        print("USUARIO: demo.usuario@loteseguro.invalid")
-        print("Usá las contraseñas que acabás de elegir. Se actualizan únicamente estas dos cuentas de prueba.")
+    if not args.sin_admin:
+        # Solo viajan al proceso del backend: no se guardan en archivos ni en el entorno de esta ventana.
+        env["ADMIN_EMAIL"] = correo_admin()
+        env["ADMIN_PASSWORD"] = password_cuenta("ADMIN_PASSWORD", env["ADMIN_EMAIL"])
+        print(f"Administrador: {env['ADMIN_EMAIL']}")
+        print("Si esa cuenta ya existía se conserva su contraseña actual; si no, se crea con la que acabás de elegir.")
     print("Backend: http://localhost:8080/ · Detener: Ctrl+C", flush=True)
     wrapper = ROOT / ("mvnw.cmd" if os.name == "nt" else "mvnw")
     result = subprocess.run([str(wrapper), "spring-boot:run"], cwd=ROOT, env=env)

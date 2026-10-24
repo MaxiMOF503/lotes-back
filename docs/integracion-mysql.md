@@ -1,44 +1,32 @@
-# Integración de ficha pública con MySQL
+# Pruebas de integración con MySQL
 
-El perfil `mysql-it` ejecuta `PublicLoteMySqlIT` con la aplicación completa, inicializador, JPA, consulta espacial real y MockMvc, sin mocks de repositorios. No agrega dependencias de ejecución ni requiere Docker.
+El perfil `mysql-it` ejecuta las clases `*IT` con MySQL 8 real (Failsafe). Los tests habituales (`mvnw test` / `verify` sin el perfil) no necesitan MySQL.
 
 ## Requisitos
 
 - Java 21 y MySQL 8.x.
-- Una **base descartable y exclusiva** llamada `lotes_ficha_test`, creada antes de ejecutar.
-- Un usuario con permisos sobre esa base para crear y eliminar tablas y operar con los datos.
-
-El test desactiva Flyway y configura `ddl-auto=create-drop`: reemplaza las tablas de la base indicada y las elimina al cerrar el contexto. Nunca usar una base con datos que deban conservarse. La configuración comprueba el nombre exacto `lotes_ficha_test` antes de iniciar JPA y no toma las credenciales `DB_*` de la aplicación.
+- Capas territoriales importadas en la base de la aplicación (`py -3 scripts/importar_territorio.py` con `DB_*`), para `TerritorioMySqlIT`, `EspacioTerritorialMySqlIT` y `ActividadTerritorialMySqlIT`. Se activan con `TERRITORIO_IT=true` y solo leen; las pruebas con datos personales se revierten por transacción.
+- Una **base descartable y exclusiva** llamada `lotes_flyway_test`, creada vacía antes de ejecutar, para `MigracionesFlywayMySqlIT`.
 
 ## Ejecutar
 
-Crear `lotes_ficha_test` en la instancia destinada a pruebas. Configurar las credenciales localmente, sin guardarlas en Git:
-
 ```powershell
-$env:MYSQL_IT_URL = 'jdbc:mysql://127.0.0.1:3306/lotes_ficha_test?serverTimezone=UTC'
+$env:DB_URL = 'jdbc:mysql://127.0.0.1:3306/verificador_lotes?serverTimezone=UTC'
+$env:DB_USERNAME = 'usuario_de_pruebas'
+$env:DB_PASSWORD = '<contraseña local>'
+$env:MYSQL_IT_URL = 'jdbc:mysql://127.0.0.1:3306/lotes_flyway_test?serverTimezone=UTC'
 $env:MYSQL_IT_USERNAME = 'usuario_de_pruebas'
 $env:MYSQL_IT_PASSWORD = '<contraseña local>'
-./mvnw.cmd -Pmysql-it verify
+$env:TERRITORIO_IT = 'true'
+.\mvnw.cmd -Pmysql-it verify
 ```
 
-Si falta la URL o el usuario, o MySQL no responde, el perfil falla: no omite silenciosamente la integración. `MYSQL_IT_PASSWORD` puede omitirse sólo si la instancia de pruebas acepta contraseña vacía. En Linux/macOS exportar las mismas variables y ejecutar `./mvnw -Pmysql-it verify`.
+Las contraseñas se definen solo en la terminal. Si falta `MYSQL_IT_URL` o no apunta a `lotes_flyway_test`, la prueba de migraciones falla en lugar de omitirse. **`MigracionesFlywayMySqlIT` vacía por completo `lotes_flyway_test` antes de cada caso**: nunca apuntarla a una base con datos.
 
-`./mvnw.cmd verify` conserva el ciclo normal de tests sin requerir MySQL; las clases terminadas en `IT` se ejecutan mediante Failsafe únicamente al activar `mysql-it`. Los informes quedan en `target/failsafe-reports` y `target/surefire-reports`.
-
-Las migraciones se prueban aparte en `MigracionesFlywayMySqlIT`, sobre otra base descartable llamada `lotes_flyway_test` (mismo servidor y credenciales `MYSQL_IT_*`; crearla igual que `lotes_ficha_test`). Esa prueba **vacía** la base antes de cada caso. Ver [migraciones](migraciones-flyway.md).
+En Linux/macOS usar `./mvnw`. Los informes quedan en `target/failsafe-reports` y `target/surefire-reports`.
 
 ## Cobertura
 
-- Motor MySQL 8 real, punto persistido con SRID 4326 y latitud/longitud correctas.
-- HTTP 200 por identificador y por coordenadas exactas.
-- Orientación y fuente del departamento recuperadas desde la base.
-- HTTP 404 para identificador inexistente, punto cercano, coordenadas invertidas y punto sin coincidencia.
-- HTTP 200 con campos opcionales null persistidos en MySQL.
-
-La prueba con datos parciales se revierte por transacción. Las otras consultas usan el lote cargado por el inicializador real, sin una transacción de test que oculte problemas de carga del departamento.
-
-## Verificación en esta entrega
-
-Ejecutado sobre una instancia temporal independiente de MySQL Community Server 8.0.46, limitada a `127.0.0.1:33317`, con directorio de datos propio. No se utilizó la base de la aplicación ni se modificó el servicio MySQL instalado.
-
-La inicialización de esa instancia sigue el mecanismo documentado por [MySQL para directorios de datos nuevos](https://dev.mysql.com/doc/refman/8.0/en/data-directory-initialization.html). La instancia temporal se detiene al terminar la verificación.
+- `TerritorioMySqlIT`: consulta espacial real (SRID 4326, ejes longitud/latitud), parcelas repetidas ocultas, parcelas cercanas a un punto de Georef.
+- `EspacioTerritorialMySqlIT` y `ActividadTerritorialMySqlIT`: consultas guardadas, fichas con control de versión, historial y privacidad entre cuentas.
+- `MigracionesFlywayMySqlIT`: base nueva, repetir el arranque, base con tablas y datos de la instalación anterior, importador primero y, para la migración V3, que retira solo los datos demostrativos y conserva cuentas reales, fichas, guardadas y capas (ver [migraciones](migraciones-flyway.md)).

@@ -33,7 +33,7 @@ public class RestExceptionHandler {
     }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> conflicto(Exception e,HttpServletRequest r) {
-        return ResponseEntity.status(409).body(new ApiErrorResponse(Instant.now(),409,"CONFLICTO_DATOS","Identificador duplicado o datos incompatibles",r.getRequestURI(),List.of()));
+        return ResponseEntity.status(409).body(new ApiErrorResponse(Instant.now(),409,"CONFLICTO_DATOS","Los datos entraron en conflicto con otro registro",r.getRequestURI(),List.of()));
     }
     @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
         org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
@@ -55,16 +55,9 @@ public class RestExceptionHandler {
 			BindException exception,
 			HttpServletRequest request) {
 		List<ApiErrorResponse.DetalleError> detalles = new ArrayList<>();
-		boolean editorLotes = request.getRequestURI().startsWith("/api/admin/lotes");
 
 		for (FieldError error : exception.getBindingResult().getFieldErrors()) {
-			String campo = error.getField();
-			if (editorLotes) {
-				campo = campo.replaceAll("\\.referenciaValida$", ".referencia");
-				if (campo.equals("zonificacionConsistente")) campo = "zonificacionVerificada";
-				if (campo.equals("distanciaFinita")) campo = "distanciaRedElectricaMts";
-			}
-			detalles.add(new ApiErrorResponse.DetalleError(campo, error.getDefaultMessage()));
+			detalles.add(new ApiErrorResponse.DetalleError(error.getField(), error.getDefaultMessage()));
 		}
 		for (ObjectError error : exception.getBindingResult().getGlobalErrors()) {
 			detalles.add(new ApiErrorResponse.DetalleError("criterio", error.getDefaultMessage()));
@@ -74,22 +67,9 @@ public class RestExceptionHandler {
 		return ResponseEntity.badRequest().body(new ApiErrorResponse(
 				Instant.now(),
 				HttpStatus.BAD_REQUEST.value(),
-				editorLotes ? "DATOS_LOTE_INVALIDOS" : "CONSULTA_INVALIDA",
-				editorLotes ? "Revisá los campos señalados del lote" : "Los parámetros de consulta no son válidos",
+				"CONSULTA_INVALIDA",
+				"Los parámetros de consulta no son válidos",
 				request.getRequestURI(),
 				detalles));
-	}
-
-	@ExceptionHandler(LoteNoEncontradoException.class)
-	public ResponseEntity<ApiErrorResponse> handleLoteNoEncontrado(
-			LoteNoEncontradoException exception,
-			HttpServletRequest request) {
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiErrorResponse(
-				Instant.now(),
-				HttpStatus.NOT_FOUND.value(),
-				"LOTE_NO_ENCONTRADO",
-				exception.getMessage(),
-				request.getRequestURI(),
-				List.of()));
 	}
 }

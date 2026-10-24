@@ -29,7 +29,7 @@ public class EstadisticaService {
             LoggerFactory.getLogger(getClass()).warn("No se pudo registrar una estadística; la consulta continúa");
         }
     }
-    public record Dia(LocalDate fecha,long visitas,long consultas,long porIdentificador,long porCoordenadas,long porDireccion,long sinCriterioValido,
+    public record Dia(LocalDate fecha,long visitas,long consultas,long porNomenclatura,long porCoordenadas,long porDireccion,long sinCriterioValido,
         long exitosas,long invalidas,long sinResultados,long erroresTecnicos) {}
     public record Resumen(LocalDate desde,LocalDate hasta,String zona,long visitas,long consultas,List<Dia> dias) {}
     public Resumen consultar(LocalDate desde,LocalDate hasta) {
@@ -42,7 +42,7 @@ public class EstadisticaService {
             var fecha=((java.sql.Date)fila.get("fecha")).toLocalDate();var c=contadores.get(fecha);long n=((Number)fila.get("cantidad")).longValue();
             if("VISITA".equals(fila.get("tipo"))) {c[0]+=n;continue;}
             c[1]+=n;
-            int criterio=switch(fila.get("criterio").toString()) {case "IDENTIFICADOR" -> 2;case "COORDENADAS" -> 3;case "DIRECCION" -> 9;default -> 4;};c[criterio]+=n;
+            int criterio=switch(fila.get("criterio").toString()) {case "NOMENCLATURA" -> 2;case "COORDENADAS" -> 3;case "DIRECCION" -> 9;default -> 4;};c[criterio]+=n;
             int resultado=switch(fila.get("resultado").toString()) {case "EXITO" -> 5;case "INVALIDA" -> 6;case "SIN_RESULTADOS" -> 7;default -> 8;};c[resultado]+=n;
         }
         var dias=contadores.entrySet().stream().map(e -> {var c=e.getValue();return new Dia(e.getKey(),c[0],c[1],c[2],c[3],c[9],c[4],c[5],c[6],c[7],c[8]);}).toList();
