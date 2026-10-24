@@ -27,27 +27,10 @@ DATASETS = {
                      "EDEMSA · Portal de Datos Abiertos de Energía · recorte Luján de Cuyo",
                      "https://datos.energia.gob.ar"),
 }
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS territorio_elementos (
- capa VARCHAR(24) NOT NULL, origen_id VARCHAR(100) NOT NULL,
- geometria GEOMETRY NOT NULL SRID 4326,
- propiedades JSON NOT NULL, valida BOOLEAN NOT NULL DEFAULT TRUE,
- duplicado_de VARCHAR(100) NULL,
- PRIMARY KEY(capa,origen_id), SPATIAL INDEX territorio_geometria(geometria)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS territorio_fuentes (
- capa VARCHAR(24) PRIMARY KEY, fuente VARCHAR(255) NOT NULL,
- url VARCHAR(255) NOT NULL, sha256 CHAR(64) NOT NULL,
- registros INT NOT NULL, invalidos INT NOT NULL,
- importado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-"""
-SCHEMA += """
-CREATE TABLE IF NOT EXISTS territorio_sin_geometria (
- capa VARCHAR(24) NOT NULL, origen_id VARCHAR(100) NOT NULL,
- propiedades JSON NOT NULL, PRIMARY KEY(capa,origen_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-"""
+# Una sola definicion: la migracion V2 de Flyway. Es idempotente, asi que se puede ejecutar
+# antes de importar aunque el backend todavia no haya arrancado o la base ya tenga las tablas.
+MIGRACION_TERRITORIO = ROOT / "src" / "main" / "resources" / "db" / "migration" / "V2__capas_territoriales.sql"
+SCHEMA = MIGRACION_TERRITORIO.read_text(encoding="utf-8")
 ESCAPES = {ord("0"): 0, ord("n"): 10, ord("r"): 13, ord("b"): 8,
            ord("t"): 9, ord("Z"): 26}
 ROW = re.compile(rb"\((\d+),'((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)'\)", re.S)
@@ -127,13 +110,6 @@ def read_geojson_geometrias(path):
         props = feature.get("properties") or {}
         yield str(feature.get("id") or props.get("fid") or props.get("id")), feature["geometry"], props
 
-def asegurar_columna_duplicados():
-    # Bases importadas antes de detectar copias: agregar la columna sin reimportar.
-    existe = mysql("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() "
-                   "AND TABLE_NAME='territorio_elementos' AND COLUMN_NAME='duplicado_de';").strip()
-    if existe == "0":
-        mysql("ALTER TABLE territorio_elementos ADD COLUMN duplicado_de VARCHAR(100) NULL;")
-
 def marcar_copias(layer):
     """Idempotente: se ejecuta en cada importación del catastro, aunque el archivo no cambie."""
     path = ROOT / "data" / DATASETS[layer][0]
@@ -186,7 +162,6 @@ def import_layer(layer, force=False):
     # También lo usa iniciar_local.py: el marcado de copias va acá para que ningún camino lo saltee.
     cargar_capa(layer, force)
     if layer == "catastro":
-        asegurar_columna_duplicados()
         marcar_copias(layer)
 
 def cargar_capa(layer, force=False):

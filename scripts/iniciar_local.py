@@ -92,7 +92,7 @@ def main():
         print("Base y capas listas. No se crearon cuentas ni se inició el backend.")
         return
     env = os.environ.copy()
-    env["JPA_DDL_AUTO"] = "update"
+    env["JPA_DDL_AUTO"] = "validate"
     env["SERVER_PORT"] = "8080"
     # Escucha local para la presentación; no abre el administrador a otras PCs.
     env["SERVER_ADDRESS"] = "127.0.0.1"

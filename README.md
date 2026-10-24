@@ -22,7 +22,7 @@ Los lotes ficticios son optativos; no se insertan en el arranque normal. Para ut
 
 ## Ejecución manual
 
-Configurar DB_URL (por ejemplo jdbc:mysql://localhost:3306/verificador_lotes?useSSL=false&serverTimezone=UTC), DB_USERNAME y DB_PASSWORD. La base debe existir; JPA_DDL_AUTO tiene valor predeterminado update. Preparar las capas con `py -3 scripts/importar_territorio.py`, usando esa conexión.
+Configurar DB_URL (por ejemplo jdbc:mysql://localhost:3306/verificador_lotes?useSSL=false&serverTimezone=UTC), DB_USERNAME y DB_PASSWORD. La base debe existir y puede estar vacía: Flyway crea o completa las tablas al arrancar (ver [migraciones](docs/migraciones-flyway.md)) y Hibernate solo las valida (JPA_DDL_AUTO=validate). Antes de actualizar una instalación con datos, hacer una copia de seguridad. Preparar las capas con `py -3 scripts/importar_territorio.py`, usando esa conexión.
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -37,6 +37,7 @@ La [nueva área interna](docs/area-interna-real.md) vincula las fichas complemen
 - [Ficha pública de lote](docs/contrato-ficha-publica.md): parámetros, respuestas, errores y datos parciales; incluye dónde consultar y procedencia.
 - [Mantenedor y estadísticas](docs/mantenedor-estadisticas.md): administración de lotes, permisos y contadores diarios anónimos.
 - [Datos territoriales reales](docs/datos-territoriales-reales.md): importación, calidad, APIs espaciales y limitaciones.
+- [Migraciones de base de datos](docs/migraciones-flyway.md): Flyway, instalación nueva, instalación existente y cómo agregar cambios de esquema.
 - Swagger UI: /swagger-ui/index.html. OpenAPI JSON: /v3/api-docs.
 
 La búsqueda por dirección o identificador sigue consultando los lotes registrados. El mapa consulta las parcelas importadas; no convierte automáticamente todo el catastro en lotes editables.

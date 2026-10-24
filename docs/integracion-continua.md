@@ -15,14 +15,15 @@ Esto compila, ejecuta los tests habituales, empaqueta el JAR y verifica los scri
 
 ## Integración MySQL
 
-El segundo trabajo crea un servicio descartable MySQL 8 con dos bases:
+El segundo trabajo crea un servicio descartable MySQL 8 con tres bases:
 
 - `verificador_lotes`: recibe las tres capas reales incluidas en `data/` y ejecuta las pruebas territoriales, de Mi espacio e historial.
-- `lotes_ficha_test`: se usa exclusivamente por `PublicLoteMySqlIT`, que crea y elimina su esquema durante la prueba.
+- `lotes_ficha_test`: se usa exclusivamente por `PublicLoteMySqlIT`, que crea y elimina su esquema durante la prueba (con Flyway desactivado).
+- `lotes_flyway_test`: la usa `MigracionesFlywayMySqlIT`, que la vacía y prueba las migraciones de [Flyway](migraciones-flyway.md) sobre una base nueva y sobre una instalación existente.
 
 Las credenciales declaradas en el workflow existen solo durante esa ejecución. No corresponden a ninguna instalación del equipo.
 
-Para reproducir esta verificación en Windows se necesita una base MySQL local descartable y las capas importadas:
+Para reproducir esta verificación en Windows se necesita una base MySQL local descartable, las capas importadas y las bases vacías `lotes_ficha_test` y `lotes_flyway_test` (`CREATE DATABASE lotes_flyway_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;`):
 
 ```powershell
 $env:DB_URL = 'jdbc:mysql://127.0.0.1:3306/verificador_lotes?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
@@ -32,7 +33,7 @@ $env:MYSQL_IT_URL = 'jdbc:mysql://127.0.0.1:3306/lotes_ficha_test?useSSL=false&a
 $env:MYSQL_IT_USERNAME = 'root'
 $env:MYSQL_IT_PASSWORD = '<contraseña local>'
 $env:TERRITORIO_IT = 'true'
-$env:JPA_DDL_AUTO = 'update'
+$env:JPA_DDL_AUTO = 'validate'
 $env:DEMO_LOTES_ENABLED = 'false'
 $env:DEMO_SQL_INIT_MODE = 'never'
 $env:DEMO_ACCOUNTS_ENABLED = 'false'

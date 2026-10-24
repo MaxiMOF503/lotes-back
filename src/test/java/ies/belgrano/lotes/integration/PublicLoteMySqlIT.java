@@ -53,6 +53,8 @@ class PublicLoteMySqlIT {
         registry.add("spring.datasource.url", () -> url);
         registry.add("spring.datasource.username", () -> user);
         registry.add("spring.datasource.password", () -> password == null ? "" : password);
+        // Base descartable: Hibernate crea y borra las tablas. Las migraciones se prueban en MigracionesFlywayMySqlIT.
+        registry.add("spring.flyway.enabled", () -> "false");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         // El lote histórico existe únicamente en esta base descartable. Las pruebas
         // territoriales y el arranque normal mantienen los datos demo deshabilitados.

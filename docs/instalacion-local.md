@@ -113,6 +113,6 @@ Son capturas de las fuentes indicadas, no una conexión en vivo a los organismos
 
 ## Conexión y estructura de datos
 
-Spring Boot usa DB_URL, DB_USERNAME y DB_PASSWORD para abrir la conexión con MySQL. Hibernate crea o actualiza las tablas de la aplicación. El importador prepara territorio_elementos, territorio_sin_geometria y territorio_fuentes, con índice espacial y procedencia. El backend consulta esos datos al seleccionar un punto o cargar una capa del mapa.
+Spring Boot usa DB_URL, DB_USERNAME y DB_PASSWORD para abrir la conexión con MySQL. Flyway crea o completa las tablas al arrancar y Hibernate solo las valida ([migraciones](migraciones-flyway.md)). El importador usa la misma definición de territorio_elementos, territorio_sin_geometria y territorio_fuentes, con índice espacial y procedencia. El backend consulta esos datos al seleccionar un punto o cargar una capa del mapa.
 
 Angular consume las APIs; nunca accede directamente a MySQL. Las cuentas y los datos de cada instalación viven solamente en su base local.

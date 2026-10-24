@@ -24,7 +24,7 @@ Se conserva el mantenedor original en Registros anteriores, con sus permisos, fo
 
 ## Base y arranque
 
-Con JPA_DDL_AUTO=update (valor predeterminado), Hibernate crea consultas_guardadas y fichas_parcelas al iniciar. Las tablas territorio_elementos, territorio_fuentes y territorio_sin_geometria siguen siendo fuentes de lectura. Los guardados tienen clave única usuario_id/parcela_id y relación con usuarios; las fichas usan parcela_id y control de versión.
+Flyway crea consultas_guardadas y fichas_parcelas al iniciar (migración V1; Hibernate solo las valida). Las tablas territorio_elementos, territorio_fuentes y territorio_sin_geometria siguen siendo fuentes de lectura. Los guardados tienen clave única usuario_id/parcela_id y relación con usuarios; las fichas usan parcela_id y control de versión.
 
 Mantener ambos proyectos actualizados localmente, iniciar el backend y luego el frontend según instalacion-local.md. No hace falta reimportar capas que no cambiaron ni reiniciar las cuentas de clase.
 
@@ -54,7 +54,7 @@ Se comprobó en navegador el ingreso de ambos roles, guardar y reabrir una parce
 
 Con sesión iniciada, las consultas nuevas del mapa pasan por POST /api/mi-espacio/consultas. El servidor vuelve a consultar las fuentes reales y guarda una copia completa: geometrías y atributos, servicios, fuentes, fecha de importación y aportes complementarios publicados en ese momento. No acepta un snapshot enviado por el navegador. Las consultas anónimas siguen usando la API pública y no se guardan. No hay reconstrucción retroactiva de consultas anteriores.
 
-La tabla consultas_historial se crea mediante Hibernate ddl-auto=update, igual que las otras tablas de la aplicación. Conserva usuario_id, punto, fecha, resumen y snapshot JSON; un índice por usuario/fecha facilita la paginación. Cada cuenta tiene su propio historial, incluidos los administradores. No hay acceso administrativo al historial de otras personas.
+La tabla consultas_historial se crea con la migración V1 de Flyway, igual que las otras tablas de la aplicación. Conserva usuario_id, punto, fecha, resumen y snapshot JSON; un índice por usuario/fecha facilita la paginación. Cada cuenta tiene su propio historial, incluidos los administradores. No hay acceso administrativo al historial de otras personas.
 
 Los informes de historial leen exclusivamente esa copia; no cambian al editar una ficha o reimportar una capa. El documento distingue fecha de consulta y fecha de generación. Las guardadas y la comparación, en cambio, consultan datos actuales y validan que el punto siga perteneciendo a la parcela elegida. Una incompatibilidad devuelve 409 y pide seleccionar de nuevo. Comparar no crea historial adicional ni asigna puntuaciones de aptitud.
 
