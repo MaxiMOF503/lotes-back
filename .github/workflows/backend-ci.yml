@@ -1,0 +1,134 @@
+name: Backend CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas-rapidas:
+    name: Pruebas unitarias y empaquetado
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Habilitar Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Verificar backend
+        run: ./mvnw -B -ntp verify
+
+      - name: Verificar scripts locales
+        run: python -m unittest discover -s scripts -p 'test_*.py' -v
+
+      - name: Guardar reportes de pruebas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-test-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pruebas-mysql:
+    name: Integración con MySQL 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: verificador_lotes
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pci-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/verificador_lotes?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ci-root-password
+      MYSQL_IT_URL: jdbc:mysql://127.0.0.1:3306/lotes_ficha_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      MYSQL_IT_USERNAME: root
+      MYSQL_IT_PASSWORD: ci-root-password
+      MYSQL_PWD: ci-root-password
+      TERRITORIO_IT: 'true'
+      JPA_DDL_AUTO: update
+      DEMO_LOTES_ENABLED: 'false'
+      DEMO_SQL_INIT_MODE: never
+      DEMO_ACCOUNTS_ENABLED: 'false'
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar cliente MySQL
+        run: |
+          if ! command -v mysql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y default-mysql-client
+          fi
+          mysql --version
+
+      - name: Preparar bases aisladas
+        run: mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE lotes_ficha_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+
+      - name: Importar capas territoriales reales
+        run: python scripts/importar_territorio.py
+
+      - name: Habilitar Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Ejecutar integración MySQL
+        run: ./mvnw -B -ntp -Pmysql-it verify
+
+      - name: Guardar reportes de integración
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-mysql-test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          if-no-files-found: ignore
+          retention-days: 7

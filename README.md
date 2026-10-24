@@ -1,5 +1,7 @@
 # LoteSeguro · backend
 
+[![Backend CI](https://github.com/MaxiMOF503/lotes-back/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/MaxiMOF503/lotes-back/actions/workflows/backend-ci.yml)
+
 Spring Boot 4.1.1, Java 21, Maven Wrapper, Spring MVC, Bean Validation y JPA/MySQL.
 
 ## Instalar y presentar en otra PC
@@ -46,6 +48,8 @@ La búsqueda por dirección o identificador sigue consultando los lotes registra
 py -3 -m unittest discover -s scripts -p 'test_*.py' -v
 .\mvnw.cmd verify
 ```
+
+El workflow [Backend CI](.github/workflows/backend-ci.yml) reproduce estas verificaciones en cada Pull Request y push a `main`. Además prepara dos bases temporales MySQL 8, importa las capas territoriales incluidas y ejecuta todas las pruebas `*IT`. No utiliza la base ni las contraseñas de ningún integrante. Los detalles para reproducir los controles están en [Integración continua](docs/integracion-continua.md).
 
 Los tests habituales no necesitan MySQL. Para probar el cruce espacial contra MySQL real, importar las capas y configurar DB_*:
 
