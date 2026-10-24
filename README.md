@@ -36,6 +36,7 @@ La [nueva área interna](docs/area-interna-real.md) vincula las fichas complemen
 
 - [Estadísticas](docs/estadisticas.md): contadores diarios anónimos de visitas y consultas por mapa, nomenclatura y dirección.
 - [Datos territoriales reales](docs/datos-territoriales-reales.md): importación, calidad, APIs espaciales y limitaciones.
+- [Errores de la API y diagnóstico](docs/errores-api.md): formato único de error, códigos estables para el frontend y el endpoint de estado.
 - [Migraciones de base de datos](docs/migraciones-flyway.md): Flyway, instalación nueva, instalación existente y cómo agregar cambios de esquema.
 - Swagger UI: /swagger-ui/index.html. OpenAPI JSON: /v3/api-docs.
 

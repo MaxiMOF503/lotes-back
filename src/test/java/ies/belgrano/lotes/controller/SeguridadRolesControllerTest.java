@@ -178,7 +178,7 @@ class SeguridadRolesControllerTest {
 	void csrfSigueSiendoObligatorioParaCerrarSesion() throws Exception {
 		mvc.perform(post("/api/logout").with(user(ADMIN_EMAIL).roles("ADMIN")))
 				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
+				.andExpect(jsonPath("$.codigo").value("CSRF_INVALIDO"));
 	}
 
 	private MockHttpSession iniciarSesion(String email) throws Exception {

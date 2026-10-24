@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CsrfException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -65,8 +66,12 @@ public class SecurityConfig {
 			.exceptionHandling(exceptions -> exceptions
 					.authenticationEntryPoint((request, response, exception) -> error(
 							request, response, 401, "AUTENTICACION_REQUERIDA", "Se requiere iniciar sesión"))
-					.accessDeniedHandler((request, response, exception) -> error(
-							request, response, 403, "ACCESO_DENEGADO", "No tenés permiso o el token CSRF es inválido")))
+					.accessDeniedHandler((request, response, exception) -> {
+						// Un token CSRF ausente o vencido suele significar que la sesión caducó: se distingue del permiso insuficiente.
+						if (exception instanceof CsrfException) error(request, response, 403, "CSRF_INVALIDO",
+								"La sesión de seguridad venció o falta el token. Recargá la página e intentá de nuevo.");
+						else error(request, response, 403, "ACCESO_DENEGADO", "Tu cuenta no tiene permiso para realizar esta acción");
+					}))
 			.build();
 	}
 

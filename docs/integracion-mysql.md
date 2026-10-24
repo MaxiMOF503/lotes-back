@@ -29,4 +29,5 @@ En Linux/macOS usar `./mvnw`. Los informes quedan en `target/failsafe-reports` y
 
 - `TerritorioMySqlIT`: consulta espacial real (SRID 4326, ejes longitud/latitud), parcelas repetidas ocultas, parcelas cercanas a un punto de Georef.
 - `EspacioTerritorialMySqlIT` y `ActividadTerritorialMySqlIT`: consultas guardadas, fichas con control de versión, historial y privacidad entre cuentas.
+- `EstadoMySqlIT`: el diagnóstico de estado reconoce las capas importadas y la versión del esquema.
 - `MigracionesFlywayMySqlIT`: base nueva, repetir el arranque, base con tablas y datos de la instalación anterior, importador primero y, para la migración V3, que retira solo los datos demostrativos y conserva cuentas reales, fichas, guardadas y capas (ver [migraciones](migraciones-flyway.md)).
