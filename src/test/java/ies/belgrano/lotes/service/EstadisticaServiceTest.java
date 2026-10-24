@@ -7,6 +7,6 @@ class EstadisticaServiceTest {
         var manager=mock(org.springframework.transaction.PlatformTransactionManager.class);
         when(manager.getTransaction(any())).thenThrow(new org.springframework.transaction.CannotCreateTransactionException("Base no disponible"));
         var service=new EstadisticaService(mock(org.springframework.jdbc.core.JdbcTemplate.class),manager,"America/Argentina/Buenos_Aires");
-        assertDoesNotThrow(() -> service.registrar("CONSULTA","IDENTIFICADOR","EXITO"));
+        assertDoesNotThrow(() -> service.registrar("CONSULTA","NOMENCLATURA","EXITO"));
     }
 }

@@ -20,7 +20,7 @@ Los cambios sin guardar tienen confirmación antes de cambiar de parcela, pesta�
 
 ## Registros anteriores
 
-Se conserva el mantenedor original en Registros anteriores, con sus permisos, formularios, eliminación, datos y procedencias. Los ejemplos no pasan a ser parcelas reales por cambiar de pantalla. Estadísticas mantiene sus permisos y contadores existentes.
+El mantenedor de lotes de demostración ("Registros anteriores") se retiró. El área interna trabaja con parcelas reales: fichas complementarias, consultas guardadas, historial y comparación. Estadísticas mantiene sus permisos y contadores ([detalle](estadisticas.md)).
 
 ## Base y arranque
 

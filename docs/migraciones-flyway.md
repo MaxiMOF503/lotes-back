@@ -8,6 +8,7 @@ Las migraciones están en `src/main/resources/db/migration`:
 | --- | --- | --- |
 | 1 | `V1__esquema_aplicacion.sql` | Las nueve tablas de la aplicación: departamentos, roles, usuarios, lineas_electricas, lotes, estadisticas_diarias, consultas_guardadas, consultas_historial y fichas_parcelas. |
 | 2 | `V2__capas_territoriales.sql` | territorio_elementos, territorio_fuentes y territorio_sin_geometria, más la columna `duplicado_de` si falta. |
+| 3 | `V3__retirar_datos_demo.sql` | No crea nada: retira los datos y las tablas de demostración (ver abajo). |
 
 Ambas son idempotentes: usan `CREATE TABLE IF NOT EXISTS` y agregan `duplicado_de` solo si no existe. Repetirlas no recrea tablas, no falla y no modifica ninguna fila. Las definiciones de V1 son las mismas que Hibernate venía generando (mismos nombres de índices y claves), de modo que una base ya instalada y una base nueva quedan idénticas.
 
@@ -41,12 +42,26 @@ Arrancar de nuevo, o arrancar con otra computadora que usa la misma base, no vue
 4. Procurar migraciones idempotentes y transaccionales cuando MySQL lo permita (los `CREATE`/`ALTER` confirman solos, así que conviene que sean repetibles).
 5. Si la tabla es territorial (la carga el importador), también va en su migración: el importador la lee de ahí.
 
-La limpieza de los datos demostrativos de la issue #35 será la migración `V3`, aplicada con el mismo mecanismo y siempre después de una copia de seguridad.
+## Limpieza de datos demostrativos (V3)
+
+V3 retira lo que dejaron las versiones con lotes de ejemplo. Se aplica sola en el próximo arranque, así que **antes de actualizar una instalación con datos**:
+
+1. Hacer la copia de seguridad (arriba).
+2. Opcional: abrir `scripts/diagnostico-datos-demo.sql` en MySQL Workbench; solo lee y muestra qué se va a borrar y qué se conserva.
+3. **Configurar un administrador real** (`ADMIN_EMAIL` y `ADMIN_PASSWORD`, mínimo 12 caracteres, en el entorno o en la configuración de ejecución). V3 elimina las cuentas `demo.admin@loteseguro.invalid`, `demo.usuario@loteseguro.invalid` y `usuario.demo@loteseguro.invalid`; si no hay otro administrador, nadie podría editar fichas. El administrador se crea al arrancar si su correo no existe (si existe, se conserva su contraseña).
+
+Qué hace V3:
+
+- Borra las cuentas demo con sus consultas guardadas e historial.
+- Borra los lotes demo (`LOT-DEMO-*`, `es_dato_simulado = 1` o fuente demostrativa), la línea eléctrica `RED DEMOSTRATIVA` y el departamento demo si ningún lote lo usa.
+- Elimina las tablas `lotes`, `departamentos` y `lineas_electricas` **solo si quedaron vacías**. Si alguna conserva filas que no son demo (por ejemplo un lote cargado por un administrador), la tabla queda sin usar para revisarla a mano.
+- No toca: capas territoriales, cuentas reales, fichas (aunque las haya firmado una cuenta demo), guardadas e historial de cuentas reales ni estadísticas.
+- Puede repetirse sin error: cada paso comprueba antes que la tabla exista.
 
 ## Seguridad y límites
 
 - `spring.flyway.clean-disabled=true`: la aplicación no puede borrar el contenido de una base. Solo la prueba de integración lo habilita, sobre `lotes_flyway_test`.
-- `JPA_DDL_AUTO=update`, `create` o `create-drop` ya no se usan en instalaciones reales. Solo `PublicLoteMySqlIT` sigue usando `create-drop` sobre su base descartable `lotes_ficha_test`, con Flyway desactivado.
+- `JPA_DDL_AUTO=update`, `create` o `create-drop` ya no se usan en instalaciones reales.
 - No agregar `spring.jpa.defer-datasource-initialization=true`: hace que Hibernate valide antes de que Flyway cree las tablas.
 - Una base que ya tiene tablas se toma como instalación existente: no apuntar `DB_URL` a la base de otro sistema, porque se le crearían las tablas que faltan.
 - Una base cuyas tablas difieren de las entidades (por ejemplo, creada a mano o con una versión muy anterior) no se repara sola: `validate` informa la diferencia y hay que resolverla con una migración revisada.
@@ -55,9 +70,11 @@ La limpieza de los datos demostrativos de la issue #35 será la migración `V3`,
 
 `MigracionesFlywayMySqlIT` (perfil `mysql-it`) arranca la aplicación completa, con Hibernate en `validate`, sobre una base propia `lotes_flyway_test` que vacía antes de cada caso. Comprueba:
 
-- base nueva: se crean las doce tablas, el historial queda en V1 y V2 y Hibernate valida;
+- base nueva: quedan las nueve tablas vigentes, el historial queda en V1, V2 y V3 y Hibernate valida;
 - repetir el arranque no agrega migraciones ni cambia datos;
 - base con tablas de la instalación anterior y datos reales: se marca el baseline, se agrega `duplicado_de` y no se pierde ninguna fila;
-- importador antes que el backend: el backend completa el esquema.
+- importador antes que el backend: el backend completa el esquema;
+- V3 con datos demo: se borran las cuentas, lotes, línea y departamento demo, se conservan cuentas reales, fichas, guardadas y capas, se retiran las tablas vacías y repetir el script no falla;
+- V3 con un lote que no es demo: no se pierde y su tabla se conserva.
 
-Para ejecutarla localmente hay que crear `lotes_flyway_test` junto a `lotes_ficha_test` (ver [integración continua](integracion-continua.md)).
+Para ejecutarla localmente hay que crear `lotes_flyway_test` vacía (ver [integración MySQL](integracion-mysql.md)).

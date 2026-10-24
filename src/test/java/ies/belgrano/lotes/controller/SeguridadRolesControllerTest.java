@@ -1,14 +1,10 @@
 package ies.belgrano.lotes.controller;
 
 import ies.belgrano.lotes.config.SecurityConfig;
-import ies.belgrano.lotes.dto.request.LoteAdminRequest;
-import ies.belgrano.lotes.dto.request.ProcedenciaRequest;
 import ies.belgrano.lotes.entity.RolEntity;
 import ies.belgrano.lotes.entity.UsuarioEntity;
-import ies.belgrano.lotes.repository.DepartamentoRepository;
 import ies.belgrano.lotes.repository.UsuarioRepository;
 import ies.belgrano.lotes.service.EstadisticaService;
-import ies.belgrano.lotes.service.LoteAdminService;
 import ies.belgrano.lotes.service.RegistroUsuarioService;
 import ies.belgrano.lotes.service.UsuarioAutenticacionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,30 +17,22 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.mockito.Mockito.verify;
 
-@WebMvcTest({SesionController.class, AdminLoteController.class, EstadisticaController.class, RegistroUsuarioController.class})
+@WebMvcTest({SesionController.class, EstadisticaController.class, RegistroUsuarioController.class})
 @Import({SecurityConfig.class, UsuarioAutenticacionService.class})
 class SeguridadRolesControllerTest {
 
@@ -58,17 +46,8 @@ class SeguridadRolesControllerTest {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	@Autowired
-	private ObjectMapper mapper;
-
 	@MockitoBean
 	private UsuarioRepository usuarios;
-
-	@MockitoBean
-	private LoteAdminService loteAdminService;
-
-	@MockitoBean
-	private DepartamentoRepository departamentos;
 
 	@MockitoBean
 	private EstadisticaService estadisticaService;
@@ -89,8 +68,6 @@ class SeguridadRolesControllerTest {
 				.andExpect(status().isCreated());
 	}
 
-	private LoteAdminRequest loteRequest;
-
 	@BeforeEach
 	void configurarUsuariosYRespuestas() {
 		var admin = new UsuarioEntity(
@@ -107,14 +84,6 @@ class SeguridadRolesControllerTest {
 		given(usuarios.findByEmail(ADMIN_EMAIL)).willReturn(Optional.of(admin));
 		given(usuarios.findByEmail(USUARIO_EMAIL)).willReturn(Optional.of(usuario));
 
-		loteRequest = loteRequest();
-		var detalle = new LoteAdminService.Detalle(1L, loteRequest);
-		given(loteAdminService.listar(anyInt(), anyInt(), any(), any(), any(), any(), any()))
-				.willReturn(new LoteAdminService.Pagina(List.of(), 0, 0, 0));
-		given(loteAdminService.obtener(anyLong())).willReturn(detalle);
-		given(loteAdminService.crear(any(LoteAdminRequest.class))).willReturn(detalle);
-		given(loteAdminService.editar(anyLong(), any(LoteAdminRequest.class))).willReturn(detalle);
-		given(departamentos.findAll(any(org.springframework.data.domain.Sort.class))).willReturn(List.of());
 		given(estadisticaService.consultar(any(LocalDate.class), any(LocalDate.class)))
 				.willReturn(new EstadisticaService.Resumen(
 						LocalDate.of(2026, 9, 1),
@@ -126,46 +95,16 @@ class SeguridadRolesControllerTest {
 	}
 
 	@Test
-	void adminRecibeErroresDeValidacionPorCampoAlGuardarLote() throws Exception {
-		String solicitud = mapper.writeValueAsString(loteRequest)
-				.replace("\"identificador\":\"SEGURIDAD-TEST-001\"", "\"identificador\":\"\"")
-				.replace("\"latitud\":-32.8895", "\"latitud\":null");
-		mvc.perform(post("/api/admin/lotes")
-					.with(user(ADMIN_EMAIL).roles("ADMIN"))
-					.with(csrf())
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(solicitud))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.codigo").value("DATOS_LOTE_INVALIDOS"))
-				.andExpect(jsonPath("$.errores[*].campo").value(hasItem("identificador")))
-				.andExpect(jsonPath("$.errores[*].campo").value(hasItem("latitud")));
-	}
-
-	@Test
-	void adminVeReferenciaYVerificacionComoCamposCorregibles() throws Exception {
-		String solicitud = mapper.writeValueAsString(loteRequest)
-				.replace("\"zonificacionVerificada\":false", "\"zonificacionVerificada\":true")
-				.replace("\"tipo\":\"SIMULADO\"", "\"tipo\":\"OFICIAL\"");
-		mvc.perform(post("/api/admin/lotes")
-					.with(user(ADMIN_EMAIL).roles("ADMIN"))
-					.with(csrf())
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(solicitud))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.errores[*].campo").value(hasItem("procedenciaLote.referencia")));
-	}
-
-	@Test
 	void recursosInternosSinSesionDevuelven401ConFormatoApiError() throws Exception {
 		mvc.perform(get("/api/me"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.codigo").value("AUTENTICACION_REQUERIDA"))
 				.andExpect(jsonPath("$.path").value("/api/me"));
 
-		mvc.perform(get("/api/admin/lotes"))
+		mvc.perform(get("/api/admin/estadisticas").param("desde", "2026-09-01").param("hasta", "2026-09-02"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.codigo").value("AUTENTICACION_REQUERIDA"))
-				.andExpect(jsonPath("$.path").value("/api/admin/lotes"));
+				.andExpect(jsonPath("$.path").value("/api/admin/estadisticas"));
 	}
 
 	@Test
@@ -191,41 +130,9 @@ class SeguridadRolesControllerTest {
 	}
 
 	@Test
-	void usuarioPuedeLeerLotesDetalleYDepartamentos() throws Exception {
-		var usuario = user(USUARIO_EMAIL).roles("USUARIO");
-
-		mvc.perform(get("/api/admin/lotes").with(usuario))
-				.andExpect(status().isOk());
-		mvc.perform(get("/api/admin/lotes/1").with(usuario))
-				.andExpect(status().isOk());
-		mvc.perform(get("/api/admin/departamentos").with(usuario))
-				.andExpect(status().isOk());
-	}
-
-	@Test
-	void usuarioNoPuedeEscribirLotesNiConsultarEstadisticas() throws Exception {
-		String body = mapper.writeValueAsString(loteRequest);
-		var usuario = user(USUARIO_EMAIL).roles("USUARIO");
-
-		mvc.perform(post("/api/admin/lotes")
-						.with(usuario)
-						.with(csrf())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
-				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-		mvc.perform(put("/api/admin/lotes/1")
-						.with(usuario)
-						.with(csrf())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-		mvc.perform(delete("/api/admin/lotes/1").with(usuario).with(csrf()))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
+	void usuarioNoPuedeConsultarEstadisticas() throws Exception {
 		mvc.perform(get("/api/admin/estadisticas")
-						.with(usuario)
+						.with(user(USUARIO_EMAIL).roles("USUARIO"))
 						.param("desde", "2026-09-01")
 						.param("hasta", "2026-09-02"))
 				.andExpect(status().isForbidden())
@@ -235,7 +142,6 @@ class SeguridadRolesControllerTest {
 	@Test
 	void adminConservaPerfilCompatibleYTodosLosPermisos() throws Exception {
 		MockHttpSession session = iniciarSesion(ADMIN_EMAIL);
-		String body = mapper.writeValueAsString(loteRequest);
 
 		mvc.perform(get("/api/me").session(session))
 				.andExpect(status().isOk())
@@ -247,24 +153,6 @@ class SeguridadRolesControllerTest {
 				.andExpect(jsonPath("$.nombre").value("Administrador de prueba"))
 				.andExpect(jsonPath("$.rol").value("ADMIN"));
 
-		mvc.perform(get("/api/admin/lotes").session(session))
-				.andExpect(status().isOk());
-		mvc.perform(get("/api/admin/lotes/1").session(session))
-				.andExpect(status().isOk());
-		mvc.perform(get("/api/admin/departamentos").session(session))
-				.andExpect(status().isOk());
-		mvc.perform(post("/api/admin/lotes")
-						.session(session)
-						.with(csrf())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
-				.andExpect(status().isCreated());
-		mvc.perform(put("/api/admin/lotes/1")
-						.session(session)
-						.with(csrf())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
-				.andExpect(status().isOk());
 		mvc.perform(get("/api/admin/estadisticas")
 						.session(session)
 						.param("desde", "2026-09-01")
@@ -287,37 +175,10 @@ class SeguridadRolesControllerTest {
 	}
 
 	@Test
-	void csrfSigueSiendoObligatorioParaEscrituras() throws Exception {
-		String body = mapper.writeValueAsString(loteRequest);
-		var admin = user(ADMIN_EMAIL).roles("ADMIN");
-
-		mvc.perform(post("/api/admin/lotes")
-						.with(admin)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
+	void csrfSigueSiendoObligatorioParaCerrarSesion() throws Exception {
+		mvc.perform(post("/api/logout").with(user(ADMIN_EMAIL).roles("ADMIN")))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-		mvc.perform(put("/api/admin/lotes/1")
-						.with(admin)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(body))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-		mvc.perform(delete("/api/admin/lotes/1").with(admin))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-		mvc.perform(post("/api/logout").with(admin))
-				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.codigo").value("ACCESO_DENEGADO"));
-	}
-
-	@Test
-	void soloAdminPuedeEliminarConCsrf() throws Exception {
-		mvc.perform(delete("/api/admin/lotes/1")
-				.with(user(ADMIN_EMAIL).roles("ADMIN"))
-				.with(csrf()))
-			.andExpect(status().isNoContent());
-		verify(loteAdminService).eliminar(1L);
 	}
 
 	private MockHttpSession iniciarSesion(String email) throws Exception {
@@ -328,27 +189,5 @@ class SeguridadRolesControllerTest {
 				.andExpect(status().isNoContent())
 				.andReturn();
 		return (MockHttpSession) result.getRequest().getSession(false);
-	}
-
-	private LoteAdminRequest loteRequest() {
-		var procedencia = new ProcedenciaRequest(
-				ProcedenciaRequest.Tipo.SIMULADO,
-				"Datos exclusivos de prueba",
-				null);
-		return new LoteAdminRequest(
-				"SEGURIDAD-TEST-001",
-				new BigDecimal("-32.8895"),
-				new BigDecimal("-68.8458"),
-				null,
-				"Dirección de prueba",
-				"Residencial de prueba",
-				false,
-				10.0,
-				true,
-				true,
-				procedencia,
-				procedencia,
-				procedencia,
-				procedencia);
 	}
 }

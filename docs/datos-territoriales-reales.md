@@ -45,9 +45,9 @@ npm.cmd start
 
 Abrir http://localhost:4200/. Hacer clic en Luján para identificar una parcela y cruzar servicios; el contorno aparece aunque la capa de parcelas esté apagada. En **Capas del territorio** activar parcelas, electricidad o agua. Catastro requiere zoom 15; electricidad zoom 12. Las capas se refrescan al mover el mapa, cancelan respuestas anteriores y tienen un máximo de 700 elementos por ventana desde la interfaz. Si hay más, se avisa que hay que acercarse; no se afirma que el dibujo esté completo.
 
-Los buscadores por identificador/dirección y el mantenedor siguen consultando **lotes registrados**; los archivos catastrales no contienen direcciones confiables ni equivalen a registros editables del mantenedor. Las consultas reales del mapa cuentan en las estadísticas como consultas por coordenadas; mover o activar capas no cuenta como consulta.
+Los archivos catastrales no contienen direcciones confiables: la búsqueda por dirección usa Georef y las parcelas cercanas al punto aproximado. En las estadísticas, las consultas se cuentan por mapa (coordenadas), nomenclatura y dirección ([detalle](estadisticas.md)); mover o activar capas no cuenta como consulta.
 
-Los datos ficticios no se insertan en el arranque normal. Para una clase demostrativa: `DEMO_LOTES_ENABLED=true` y `DEMO_SQL_INIT_MODE=always`, o usar `examples/iniciar-demo.ps1`. Los ejemplos existentes no se borran y no se usan para identificar las parcelas reales.
+No hay datos ficticios: la aplicación no inserta lotes, cuentas ni líneas de ejemplo (la migración V3 retira los de versiones anteriores).
 
 ## API adicional (pública)
 
