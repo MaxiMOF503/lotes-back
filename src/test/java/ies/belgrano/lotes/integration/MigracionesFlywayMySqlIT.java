@@ -22,7 +22,7 @@ class MigracionesFlywayMySqlIT {
     private static final String BASE = "lotes_flyway_test";
     /** Tablas que quedan después de V3. */
     private static final List<String> TABLAS = List.of("consultas_guardadas", "consultas_historial",
-        "estadisticas_diarias", "fichas_parcelas", "roles", "territorio_elementos",
+        "estadisticas_diarias", "fichas_parcelas", "reportes_datos", "roles", "territorio_elementos",
         "territorio_fuentes", "territorio_sin_geometria", "usuarios");
     /** Tablas del modelo anterior de lotes de demostración, que V3 retira cuando quedan vacías. */
     private static final List<String> RETIRADAS = List.of("departamentos", "lineas_electricas", "lotes");
@@ -60,7 +60,7 @@ class MigracionesFlywayMySqlIT {
     @Test void baseNuevaQuedaConTodoElEsquemaYHibernateLoValida() {
         arrancar().close();
         assertThat(tablas()).containsAll(TABLAS).doesNotContainAnyElementsOf(RETIRADAS);
-        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL");
+        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL", "4:SQL");
         assertThat(columnasDuplicadoDe()).isEqualTo(1);
     }
 
@@ -89,7 +89,7 @@ class MigracionesFlywayMySqlIT {
 
         arrancar().close();
 
-        assertThat(versiones()).containsExactly("0:BASELINE", "1:SQL", "2:SQL", "3:SQL");
+        assertThat(versiones()).containsExactly("0:BASELINE", "1:SQL", "2:SQL", "3:SQL", "4:SQL");
         assertThat(columnasDuplicadoDe()).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM usuarios WHERE email='real@ejemplo.invalid'", Long.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT direccion FROM fichas_parcelas", String.class)).isEqualTo("San Martín 1500");
@@ -101,7 +101,7 @@ class MigracionesFlywayMySqlIT {
         for (String sentencia : TERRITORIO_ANTERIOR.split(";\\s*\\n"))
             jdbc.execute(sentencia);
         arrancar().close();
-        assertThat(versiones()).containsExactly("0:BASELINE", "1:SQL", "2:SQL", "3:SQL");
+        assertThat(versiones()).containsExactly("0:BASELINE", "1:SQL", "2:SQL", "3:SQL", "4:SQL");
         assertThat(tablas()).containsAll(TABLAS);
     }
 
@@ -119,7 +119,7 @@ class MigracionesFlywayMySqlIT {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM territorio_elementos", Long.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM estadisticas_diarias", Long.class)).isEqualTo(1);
         assertThat(tablas()).doesNotContainAnyElementsOf(RETIRADAS);
-        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL");
+        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL", "4:SQL");
 
         // Repetir el script (sin Flyway) no falla ni cambia nada: las tablas ya no existen.
         var conexion = jdbc.getDataSource().getConnection();
@@ -144,7 +144,7 @@ class MigracionesFlywayMySqlIT {
         assertThat(jdbc.queryForList("SELECT identificador FROM lotes", String.class)).containsExactly("LOTE-CARGADO-POR-ADMIN");
         assertThat(tablas()).contains("lotes", "departamentos").doesNotContain("lineas_electricas");
         assertThat(jdbc.queryForList("SELECT email FROM usuarios", String.class)).containsExactly("real@ejemplo.invalid");
-        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL");
+        assertThat(versiones()).containsExactly("1:SQL", "2:SQL", "3:SQL", "4:SQL");
     }
 
     /** Aplica solo las migraciones hasta la versión indicada, como una base anterior a V3. */

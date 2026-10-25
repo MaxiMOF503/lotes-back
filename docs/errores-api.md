@@ -38,6 +38,7 @@ Un cliente puede mandar su propio `X-Correlation-Id` (8 a 64 caracteres: letras,
 | 400 | `PAGINA_INVALIDA` | Página negativa. | Sí: corregir |
 | 400 | `COMPARACION_INVALIDA` | Hay que elegir entre dos y tres guardadas distintas. | Sí: corregir |
 | 400 | `PUNTO_FUERA_PARCELA` | El punto no pertenece a la parcela elegida. | Sí: elegir otro punto |
+| 400 | `RESPUESTA_REQUERIDA` | Un reporte final necesita una respuesta de al menos 10 caracteres. | Sí: completar |
 | 401 | `AUTENTICACION_REQUERIDA` | No hay sesión o venció. | Sí: volver a ingresar |
 | 401 | `CREDENCIALES_INVALIDAS` | Correo o contraseña incorrectos al iniciar sesión. | Sí: corregir |
 | 403 | `ACCESO_DENEGADO` | La cuenta no tiene permiso para esa operación. | No |
@@ -45,6 +46,7 @@ Un cliente puede mandar su propio `X-Correlation-Id` (8 a 64 caracteres: letras,
 | 404 | `PARCELA_NO_ENCONTRADA` | La parcela no tiene geometría válida en la importación actual. | No |
 | 404 | `GUARDADA_NO_ENCONTRADA` | La consulta no está entre las guardadas de la cuenta. | No |
 | 404 | `HISTORIAL_NO_ENCONTRADO` | La consulta no está en el historial de la cuenta. | No |
+| 404 | `REPORTE_NO_ENCONTRADO` | El reporte solicitado no existe. | No |
 | 404 | `RECURSO_NO_ENCONTRADO` | La ruta no existe. | No |
 | 405 | `METODO_NO_PERMITIDO` | Método HTTP no disponible para ese recurso. | No |
 | 406 | `FORMATO_NO_ACEPTABLE` | No se puede responder en el formato pedido. | No |
