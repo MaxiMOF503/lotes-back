@@ -25,6 +25,10 @@ Un cliente puede mandar su propio `X-Correlation-Id` (8 a 64 caracteres: letras,
 
 ## Códigos
 
+La resolución de referencias de parcelas (ver [referencias](referencias-parcelas.md))
+devuelve 409 `REFERENCIA_PARCELA_INVALIDA` ante ciclos o representantes inexistentes
+en `duplicado_de`. Requiere revisar los datos; no se sustituyen IDs silenciosamente.
+
 **Recuperable** indica si la persona puede resolverlo sin soporte (reintentar, corregir o volver a ingresar).
 
 | Estado | Código | Cuándo ocurre | Recuperable |

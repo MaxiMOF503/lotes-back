@@ -6,6 +6,7 @@ import ies.belgrano.lotes.entity.*;
 import ies.belgrano.lotes.exception.OperacionInvalidaException;
 import ies.belgrano.lotes.repository.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.*;
 import tools.jackson.databind.json.JsonMapper;
@@ -23,6 +24,13 @@ class ReporteDatoServiceTest {
         new RolEntity(RolEntity.NombreRol.USUARIO));
     UsuarioEntity admin = new UsuarioEntity("Admin", "admin@ejemplo.invalid", "hash",
         new RolEntity(RolEntity.NombreRol.ADMIN));
+
+    @BeforeEach void referencias() {
+        when(territorio.canonicoDisponible(anyString())).thenAnswer(i -> {
+            String id=i.getArgument(0);
+            return Optional.of(id);
+        });
+    }
 
     @Test void creaPendienteSoloParaUnaParcelaRealYConservaNomenclatura() {
         when(usuarios.findByEmail(usuario.getEmail())).thenReturn(Optional.of(usuario));

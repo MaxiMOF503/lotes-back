@@ -96,6 +96,60 @@ public class TerritorioService {
             "PARCELA_NO_ENCONTRADA","La parcela no tiene geometría válida en la importación actual."));
     }
 
+    public record ReferenciaParcela(String idOriginal, String idCanonico, boolean esCopia,
+                                    List<String> idsRelacionados) {
+        public ReferenciaParcela { idsRelacionados = List.copyOf(idsRelacionados); }
+    }
+
+    /** Resuelve identidad actual; nunca cambia la parcela original ni referencias persistidas. */
+    public ReferenciaParcela resolverParcela(String id) {
+        String canonico = resolverCanonico(id);
+        return new ReferenciaParcela(id, canonico, !id.equals(canonico),
+            repository.referenciasDelRepresentante(canonico).stream().distinct().sorted().toList());
+    }
+
+    private String resolverCanonico(String id) {
+        if(id==null || !id.matches("[A-Za-z0-9._-]{1,100}"))throw invalid("Identificador de parcela inválido.");
+        fuente("catastro",fuentes());
+        var visitados = new java.util.HashSet<String>();
+        String actual = id;
+        while (visitados.add(actual)) {
+            var enlace = repository.enlaceParcela(actual).orElseThrow(() -> actualInexistente(visitados.size()));
+            if (enlace.duplicadoDe()==null) {
+                return enlace.id();
+            }
+            actual = enlace.duplicadoDe();
+        }
+        throw referenciaInvalida();
+    }
+
+    private static OperacionInvalidaException actualInexistente(int visitados) {
+        return visitados == 1 ? new OperacionInvalidaException(404,"PARCELA_NO_ENCONTRADA",
+            "La parcela no tiene geometría válida en la importación actual.") : referenciaInvalida();
+    }
+
+    private static OperacionInvalidaException referenciaInvalida() {
+        return new OperacionInvalidaException(409, "REFERENCIA_PARCELA_INVALIDA",
+            "La relación entre la parcela y su representante es inconsistente. Requiere revisión de los datos.");
+    }
+
+    /** Metadato opcional para listas históricas: no impide leer datos propios si falta el catastro. */
+    public java.util.Optional<String> canonicoDisponible(String id) {
+        if(id==null || !id.matches("[A-Za-z0-9._-]{1,100}"))return java.util.Optional.empty();
+        // Las listas históricas no necesitan cargar geometrías ni recorrer todos los hermanos.
+        try { return java.util.Optional.of(resolverCanonico(id)); }
+        catch (OperacionInvalidaException error) {
+            if (error.status==404 || java.util.Set.of("REFERENCIA_PARCELA_INVALIDA", "CAPA_NO_IMPORTADA",
+                    "TERRITORIO_NO_IMPORTADO").contains(error.codigo)) return java.util.Optional.empty();
+            throw error;
+        }
+        catch (BadSqlGrammarException error) {
+            if (error.getSQLException()!=null && error.getSQLException().getErrorCode()==1146)
+                return java.util.Optional.empty();
+            throw error;
+        }
+    }
+
     private Fuente fuente(String capa, List<Fuente> fuentes) {
         return fuentes.stream().filter(f -> f.capa().equals(capa)).findFirst().orElseThrow(() ->
             new OperacionInvalidaException(503, "CAPA_NO_IMPORTADA", "La capa " + capa + " no fue importada."));

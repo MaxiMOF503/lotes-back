@@ -19,6 +19,7 @@ class EspacioTerritorialServiceTest {
  TerritorioRepository geo=mock(TerritorioRepository.class);
  EspacioTerritorialService service=new EspacioTerritorialService(guardadas,fichas,usuarios,territorio,geo);
  @BeforeEach void setup(){
+   when(territorio.resolverParcela("123")).thenReturn(new TerritorioService.ReferenciaParcela("123","123",false,java.util.List.of("123")));
    when(territorio.parcela("123")).thenReturn(new Feature("Feature","123",null,
      new ObjectMapper().readTree("{\"nomenclatu\":\"060406000300002300007\"}")));
  }
@@ -38,7 +39,7 @@ class EspacioTerritorialServiceTest {
    var fecha=previa.getCreadaEn();
    when(geo.pertenece(eq("123"),anyString())).thenReturn(true);
    when(usuarios.findByEmail("ana")).thenReturn(Optional.of(usuario));
-   when(guardadas.findByUsuarioEmailAndParcelaId("ana","123")).thenReturn(Optional.of(previa));
+   when(guardadas.findFirstByUsuarioEmailAndParcelaIdInOrderByIdAsc("ana",java.util.List.of("123"))).thenReturn(Optional.of(previa));
    when(guardadas.saveAndFlush(previa)).thenReturn(previa);
    var result=service.guardar("ana","123",new Guardar(-33.0688,-68.8929," Mi consulta "));
    assertThat(result.etiqueta()).isEqualTo("Mi consulta");

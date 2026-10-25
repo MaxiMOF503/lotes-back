@@ -87,6 +87,32 @@ public class TerritorioRepository {
             FROM territorio_elementos WHERE capa='catastro' AND valida=TRUE AND origen_id=?
             """,id).stream().findFirst();
     }
+
+    public record EnlaceParcela(String id, String duplicadoDe) {}
+
+    public java.util.Optional<EnlaceParcela> enlaceParcela(String id) {
+        String columna = tieneColumnaCopias() ? "duplicado_de" : "NULL AS duplicado_de";
+        return jdbc.query("""
+            SELECT origen_id, %s FROM territorio_elementos
+            WHERE capa='catastro' AND valida=TRUE AND origen_id=?
+            """.formatted(columna), (rs, fila) -> new EnlaceParcela(rs.getString("origen_id"),rs.getString("duplicado_de")), id).stream().findFirst();
+    }
+
+    /** Incluye al representante y todas sus copias, incluso referencias encadenadas. */
+    public List<String> referenciasDelRepresentante(String id) {
+        if (!tieneColumnaCopias()) return enlaceParcela(id).isPresent() ? List.of(id) : List.of();
+        return jdbc.queryForList("""
+            WITH RECURSIVE referencias AS (
+                SELECT origen_id FROM territorio_elementos
+                WHERE capa='catastro' AND valida=TRUE AND origen_id=?
+                UNION ALL
+                SELECT e.origen_id FROM territorio_elementos e
+                JOIN referencias r ON e.duplicado_de=r.origen_id
+                WHERE e.capa='catastro' AND e.valida=TRUE
+            )
+            SELECT origen_id FROM referencias ORDER BY origen_id
+            """, String.class, id);
+    }
     public boolean pertenece(String id,String punto) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""
             SELECT EXISTS(SELECT 1 FROM territorio_elementos
@@ -120,11 +146,15 @@ public class TerritorioRepository {
      * consultas guardadas ni historial. Sin la columna (importación anterior) no se filtra.
      */
     private String filtroCopias() {
+        return tieneColumnaCopias() ? "AND duplicado_de IS NULL" : "";
+    }
+
+    private boolean tieneColumnaCopias() {
         if (!columnaCopias) columnaCopias = Boolean.TRUE.equals(jdbc.queryForObject("""
             SELECT COUNT(*)>0 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()
               AND TABLE_NAME='territorio_elementos' AND COLUMN_NAME='duplicado_de'
             """, Boolean.class));
-        return columnaCopias ? "AND duplicado_de IS NULL" : "";
+        return columnaCopias;
     }
 
     private List<Feature> features(String sql, Object... args) {
