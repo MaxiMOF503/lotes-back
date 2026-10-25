@@ -51,7 +51,7 @@ public class ActividadTerritorialService {
         var h=historiaPropia(email,id);
         var copia=mapper.readValue(h.getSnapshot(),Informe.class);
         // La copia no se recalcula contra las capas actuales ni contra las fichas editables.
-        return new Informe(Instant.now(),h.getConsultadaEn(),true,null,copia.consulta(),copia.aportes());
+        return new Informe(Instant.now(),h.getConsultadaEn(),true,copia.parcelaId(),copia.consulta(),copia.aportes(),copia.parcelaIdOriginal());
     }
     public void quitarHistorial(String email,Long id){historial.delete(historiaPropia(email,id));}
     @Transactional(readOnly=true)
@@ -62,17 +62,26 @@ public class ActividadTerritorialService {
             throw error(400,"COMPARACION_INVALIDA","Elegí entre dos y tres guardadas distintas de tu cuenta.");
         // Se comprueba la propiedad de toda la selección antes de leer datos territoriales.
         var propias=ids.stream().map(id->guardadaPropia(email,id)).toList();
+        var referencias=propias.stream().map(g->territorio.resolverParcela(g.getParcelaId())).toList();
+        var canonicos=referencias.stream().map(TerritorioService.ReferenciaParcela::idCanonico).toList();
+        if(new HashSet<>(canonicos).size()!=canonicos.size())
+            throw error(400,"COMPARACION_INVALIDA","Elegí parcelas diferentes: dos guardadas corresponden a la misma parcela.");
         var fecha=Instant.now();
-        return propias.stream().map(g->actual(g,fecha)).toList();
+        return java.util.stream.IntStream.range(0,propias.size())
+            .mapToObj(i->actual(propias.get(i),fecha,referencias.get(i))).toList();
     }
     private Informe actual(ConsultaGuardada g,Instant fecha){
-        territorio.parcela(g.getParcelaId());
-        if(!geometria.pertenece(g.getParcelaId(),"POINT("+g.getLongitud()+" "+g.getLatitud()+")"))
+        return actual(g,fecha,territorio.resolverParcela(g.getParcelaId()));
+    }
+    private Informe actual(ConsultaGuardada g,Instant fecha,TerritorioService.ReferenciaParcela referencia){
+        if(!geometria.pertenece(referencia.idCanonico(),"POINT("+g.getLongitud()+" "+g.getLatitud()+")"))
             throw error(409,"PARCELA_CAMBIO","El punto guardado ya no coincide con la parcela. Seleccionala nuevamente desde el mapa.");
         var c=territorio.consultar(g.getLatitud(),g.getLongitud());
-        if(c.parcelas().stream().noneMatch(p->p.id().equals(g.getParcelaId())))
+        if(c.parcelas().stream().noneMatch(p->p.id().equals(referencia.idCanonico())))
             throw error(409,"PARCELA_NO_INCLUIDA","La selección tiene demasiadas coincidencias. Elegí un punto interior de la parcela.");
-        return informe(c,g.getParcelaId(),fecha);
+        var informe=informe(c,referencia.idCanonico(),fecha);
+        return new Informe(informe.generadoEn(),informe.fechaConsulta(),false,referencia.idCanonico(),
+            c,informe.aportes(),g.getParcelaId());
     }
     private Informe informe(Consulta c,String id,Instant fecha){
         var aportes=c.parcelas().stream().map(p->new Aporte(p.id(),espacio.publica(p.id()))).filter(a->a.ficha()!=null).toList();

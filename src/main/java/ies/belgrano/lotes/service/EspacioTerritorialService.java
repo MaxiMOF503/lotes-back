@@ -8,6 +8,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.util.List;
+import java.util.Comparator;
 
 @Service @Transactional
 public class EspacioTerritorialService {
@@ -27,14 +29,16 @@ public class EspacioTerritorialService {
     }
     public Guardada guardar(String email,String parcelaId,Guardar r){
         TerritorioService.validarPunto(r.latitud(),r.longitud());
-        var parcela=territorio.parcela(parcelaId);
+        var referencia=territorio.resolverParcela(parcelaId);
+        var parcela=territorio.parcela(referencia.idCanonico());
         String punto="POINT("+r.longitud()+" "+r.latitud()+")";
-        if(!geometria.pertenece(parcelaId,punto))
+        if(!geometria.pertenece(referencia.idCanonico(),punto))
             throw new OperacionInvalidaException(400,"PUNTO_FUERA_PARCELA","El punto no pertenece a la parcela seleccionada.");
         var usuario=usuarios.findByEmail(email).orElseThrow(()->new OperacionInvalidaException(401,"AUTENTICACION_REQUERIDA","Iniciá sesión nuevamente."));
-        var registro=guardadas.findByUsuarioEmailAndParcelaId(email,parcelaId).orElseGet(()->
-            new ConsultaGuardada(usuario,parcelaId,parcela.properties().path("nomenclatu").asText(parcelaId)));
-        registro.actualizar(r.latitud(),r.longitud(),limpiar(r.etiqueta()));
+        // Reutiliza la más antigua del grupo; no borra ni renombra Guardadas históricas.
+        var registro=guardadas.findFirstByUsuarioEmailAndParcelaIdInOrderByIdAsc(email,referencia.idsRelacionados()).orElseGet(()->
+            new ConsultaGuardada(usuario,referencia.idCanonico(),parcela.properties().path("nomenclatu").asText(referencia.idCanonico())));
+        registro.actualizar(r.latitud(),r.longitud(),r.etiqueta()==null?registro.getEtiqueta():limpiar(r.etiqueta()));
         return guardada(guardadas.saveAndFlush(registro));
     }
     public void quitar(String email,Long id){
@@ -43,15 +47,41 @@ public class EspacioTerritorialService {
     }
     @Transactional(readOnly=true)
     public Ficha ficha(String parcelaId){
-        territorio.parcela(parcelaId);
-        return fichas.findById(parcelaId).map(this::ficha)
-            .orElse(new Ficha(parcelaId,territorio.parcela(parcelaId).properties().path("nomenclatu").asText(parcelaId),null,null,null,null,null,null,null));
+        var referencia=territorio.resolverParcela(parcelaId);
+        var exacta=fichas.findById(parcelaId).map(this::ficha)
+            .orElseGet(()->new Ficha(parcelaId,territorio.parcela(parcelaId).properties().path("nomenclatu").asText(parcelaId),null,null,null,null,null,null,null));
+        return new Ficha(exacta.parcelaId(),exacta.nomenclatura(),exacta.direccion(),exacta.observaciones(),
+            exacta.fuente(),exacta.referencia(),exacta.actualizadoPor(),exacta.actualizadoEn(),exacta.version(),
+            referencia.idCanonico(),relacionadas(referencia).stream().filter(f->!f.getParcelaId().equals(parcelaId)).map(this::ficha).toList());
     }
     @Transactional(readOnly=true)
     public FichaPublica publica(String parcelaId){
-        territorio.parcela(parcelaId);
-        return fichas.findById(parcelaId).map(f->new FichaPublica(f.getDireccion(),f.getObservaciones(),
-            f.getFuente(),f.getReferencia(),f.getActualizadoEn())).orElse(null);
+        var referencia=territorio.resolverParcela(parcelaId);
+        var aportes=relacionadas(referencia).stream().map(f->new AporteRelacionado(f.getParcelaId(),
+            f.getDireccion(),f.getObservaciones(),f.getFuente(),f.getReferencia(),f.getActualizadoEn())).toList();
+        if(aportes.isEmpty())return null;
+        if(aportes.size()==1){
+            var f=aportes.getFirst();
+            return new FichaPublica(f.direccion(),f.observaciones(),f.fuente(),f.referencia(),f.actualizadoEn(),
+                referencia.idCanonico(),false,aportes);
+        }
+        // El cliente anterior consume sólo campos planos: recibe todos los aportes rotulados,
+        // sin elegir uno como verdad ni inventar una dirección compartida.
+        String detalle="Existen varios aportes complementarios. Revisar cada origen por separado.\n\n"+
+            aportes.stream().map(f->"Parcela de origen: "+f.parcelaId()+"\nDirección: "+texto(f.direccion())+
+                "\nObservaciones: "+texto(f.observaciones())+"\nFuente: "+texto(f.fuente())+
+                "\nReferencia: "+texto(f.referencia())+"\nActualizado: "+f.actualizadoEn())
+                .collect(java.util.stream.Collectors.joining("\n\n"));
+        var ultima=aportes.stream().map(AporteRelacionado::actualizadoEn).filter(Objects::nonNull)
+            .max(java.time.Instant::compareTo).orElse(null);
+        return new FichaPublica(null,detalle,"Múltiples fuentes; ver detalle por parcela de origen",
+            "Referencias individuales en el detalle",ultima,referencia.idCanonico(),true,aportes);
+    }
+    private String texto(String valor){return valor==null?"No informado":valor;}
+    private List<FichaParcela> relacionadas(TerritorioService.ReferenciaParcela referencia){
+        return fichas.findAllById(referencia.idsRelacionados()).stream()
+            .sorted(Comparator.comparing((FichaParcela f)->!f.getParcelaId().equals(referencia.idCanonico()))
+                .thenComparing(FichaParcela::getParcelaId)).toList();
     }
     public Ficha guardarFicha(String email,String parcelaId,ies.belgrano.lotes.dto.request.EspacioTerritorialRequest.Ficha r){
         territorio.parcela(parcelaId);
@@ -73,6 +103,9 @@ public class EspacioTerritorialService {
     private String limpiar(String valor){return valor==null||valor.isBlank()?null:valor.trim();}
     private Guardada guardada(ConsultaGuardada f){return new Guardada(f.getId(),f.getParcelaId(),f.getNomenclatura(),
         f.getEtiqueta(),f.getLatitud(),f.getLongitud(),f.getCreadaEn());}
-    private Ficha ficha(FichaParcela f){return new Ficha(f.getParcelaId(),geometria.parcela(f.getParcelaId()).map(p->p.properties().path("nomenclatu").asText(f.getParcelaId())).orElse(f.getParcelaId()),f.getDireccion(),f.getObservaciones(),f.getFuente(),
-        f.getReferencia(),f.getActualizadoPor(),f.getActualizadoEn(),f.getVersion());}
+    private Ficha ficha(FichaParcela f){
+        String canonico=territorio.canonicoDisponible(f.getParcelaId()).orElse(null);
+        return new Ficha(f.getParcelaId(),geometria.parcela(f.getParcelaId()).map(p->p.properties().path("nomenclatu").asText(f.getParcelaId())).orElse(f.getParcelaId()),f.getDireccion(),f.getObservaciones(),f.getFuente(),
+            f.getReferencia(),f.getActualizadoPor(),f.getActualizadoEn(),f.getVersion(),canonico,List.of());
+    }
 }

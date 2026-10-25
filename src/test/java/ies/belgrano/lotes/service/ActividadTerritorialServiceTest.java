@@ -22,6 +22,9 @@ class ActividadTerritorialServiceTest {
  JsonMapper mapper=JsonMapper.builder().build();
  ActividadTerritorialService service=new ActividadTerritorialService(historial,guardadas,usuarios,territorio,geometria,espacio,mapper);
  UsuarioEntity usuario=mock(UsuarioEntity.class);
+ @BeforeEach void referencias(){
+   when(territorio.resolverParcela(anyString())).thenAnswer(i->{String id=i.getArgument(0);return new TerritorioService.ReferenciaParcela(id,id,false,List.of(id));});
+ }
  Consulta consulta(){return new Consulta(-33.0,-68.8,List.of(new Feature("Feature","real.1",mapper.readTree("{}"),mapper.readTree("{\"nomenclatu\":\"060406\",\"suptotal\":200}"))),false,true,null,
     new Electricidad(80.0,"Linea publicada",1000,"No acredita conexión"),List.of(new Fuente("catastro","Municipal","https://ejemplo.invalid",1,0,0,"2026-10-01")),"Verificar factibilidad");}
  @Test void historialPreservaSnapshotAunqueCambienFuentesYAportes(){

@@ -88,7 +88,11 @@ public class ReporteDatoService {
         return new ReporteDatoResponse(reporte.getId(), reporte.getParcelaId(), reporte.getNomenclatura(),
             reporte.getSeccion(), reporte.getTipo(), reporte.getDescripcion(), reporte.getEstado(), reporte.getRespuesta(),
             persona(reporte.getCreadoPor()), persona(reporte.getRespondidoPor()), reporte.getCreadoEn(),
-            reporte.getActualizadoEn(), reporte.getRespondidoEn());
+            reporte.getActualizadoEn(), reporte.getRespondidoEn(), canonicoDisponible(reporte.getParcelaId()));
+    }
+
+    private String canonicoDisponible(String id) {
+        return territorio.canonicoDisponible(id).orElse(null);
     }
 
     private Persona persona(UsuarioEntity usuario) {
