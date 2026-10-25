@@ -12,7 +12,9 @@ import java.util.Set;
 @Service
 @Transactional(readOnly = true)
 public class TerritorioService {
-    private static final Set<String> CAPAS = Set.of("catastro", "aysam", "electricidad");
+    private static final Set<String> CAPAS_BASE = Set.of("catastro", "aysam", "electricidad");
+    /** Aguas Luján es opcional: una base importada antes de esta capa sigue consultando sin ella. */
+    private static final Set<String> CAPAS = Set.of("catastro", "aysam", "aguas_lujan", "electricidad");
     private final TerritorioRepository repository;
     public TerritorioService(TerritorioRepository repository) { this.repository = repository; }
 
@@ -27,7 +29,7 @@ public class TerritorioService {
     }
 
     public Capa capa(String capa, double oeste, double sur, double este, double norte, int zoom, int limite) {
-        if (!CAPAS.contains(capa)) throw invalid("La capa debe ser catastro, aysam o electricidad.");
+        if (!CAPAS.contains(capa)) throw invalid("La capa debe ser catastro, aysam, aguas_lujan o electricidad.");
         validarPunto(sur, oeste); validarPunto(norte, este);
         if (oeste >= este || sur >= norte) throw invalid("Los límites de la ventana están invertidos.");
         if (zoom < 0 || zoom > 20 || limite < 1 || limite > 1000)
@@ -47,7 +49,7 @@ public class TerritorioService {
     public Consulta consultar(double latitud, double longitud) {
         validarPunto(latitud, longitud);
         List<Fuente> fuentes = fuentes();
-        CAPAS.forEach(capa -> fuente(capa, fuentes));
+        CAPAS_BASE.forEach(capa -> fuente(capa, fuentes));
         String punto = "POINT(" + longitud + " " + latitud + ")";
         List<Feature> parcelas = repository.parcelas(punto, 6);
         int radio = 1000;
@@ -58,9 +60,11 @@ public class TerritorioService {
             Math.max(-89.999999, latitud - margenLat),
             Math.min(179.999999, longitud + margenLon), Math.min(89.999999, latitud + margenLat));
         return new Consulta(latitud, longitud, parcelas.stream().limit(5).toList(), parcelas.size() > 5,
-            repository.dentroAgua(punto), repository.electricidad(punto, bounds, radio), fuentes,
+            repository.dentroRadio("aysam", punto),
+            fuentes.stream().anyMatch(f -> f.capa().equals("aguas_lujan")) ? repository.dentroRadio("aguas_lujan", punto) : null,
+            repository.electricidad(punto, bounds, radio), fuentes,
             "Datos publicados por las fuentes indicadas, correspondientes a los archivos importados. "
-            + "El radio de AYSAM y la proximidad eléctrica no confirman una conexión. "
+            + "Los radios de servicio de agua y la proximidad eléctrica no confirman una conexión. "
             + "La parcela no informa titularidad ni dominio. Verificá vigencia y factibilidad ante cada organismo.");
     }
 

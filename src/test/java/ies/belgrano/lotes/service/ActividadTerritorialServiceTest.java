@@ -22,7 +22,7 @@ class ActividadTerritorialServiceTest {
  JsonMapper mapper=JsonMapper.builder().build();
  ActividadTerritorialService service=new ActividadTerritorialService(historial,guardadas,usuarios,territorio,geometria,espacio,mapper);
  UsuarioEntity usuario=mock(UsuarioEntity.class);
- Consulta consulta(){return new Consulta(-33.0,-68.8,List.of(new Feature("Feature","real.1",mapper.readTree("{}"),mapper.readTree("{\"nomenclatu\":\"060406\",\"suptotal\":200}"))),false,true,
+ Consulta consulta(){return new Consulta(-33.0,-68.8,List.of(new Feature("Feature","real.1",mapper.readTree("{}"),mapper.readTree("{\"nomenclatu\":\"060406\",\"suptotal\":200}"))),false,true,null,
     new Electricidad(80.0,"Linea publicada",1000,"No acredita conexión"),List.of(new Fuente("catastro","Municipal","https://ejemplo.invalid",1,0,0,"2026-10-01")),"Verificar factibilidad");}
  @Test void historialPreservaSnapshotAunqueCambienFuentesYAportes(){
    var c=consulta();var fecha=Instant.parse("2026-10-01T12:00:00Z");
@@ -65,7 +65,7 @@ class ActividadTerritorialServiceTest {
    verifyNoInteractions(historial);
  }
  @Test void consultaSinParcelaSeConservaConSuResultadoReal(){
-   var c=new Consulta(-33,-68.8,List.of(),false,false,new Electricidad(null,null,1000,"Sin tramo"),List.of(),"Sin conexión acreditada");
+   var c=new Consulta(-33,-68.8,List.of(),false,false,null,new Electricidad(null,null,1000,"Sin tramo"),List.of(),"Sin conexión acreditada");
    when(usuarios.findByEmail("ana")).thenReturn(Optional.of(usuario));when(territorio.consultar(-33,-68.8)).thenReturn(c);
    assertThat(service.consultar("ana",-33,-68.8)).isEqualTo(c);
    var captor=org.mockito.ArgumentCaptor.forClass(ConsultaHistorial.class);verify(historial).save(captor.capture());

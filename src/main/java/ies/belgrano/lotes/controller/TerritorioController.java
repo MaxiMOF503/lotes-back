@@ -37,7 +37,7 @@ public class TerritorioController {
     @GetMapping("/consulta")
     @Operation(summary = "Consultar parcelas y servicios publicados de un punto",
         description = "Incluye coincidencias en límites. Electricidad: tramo más cercano hasta 1000 metros. "
-            + "Agua: pertenencia al radio general, sin confirmar acometida.")
+            + "Agua: pertenencia a los radios generales de AYSAM y de Aguas Luján, sin confirmar acometida.")
     public Consulta consultar(@RequestParam double latitud, @RequestParam double longitud) {
         return service.consultar(latitud, longitud);
     }

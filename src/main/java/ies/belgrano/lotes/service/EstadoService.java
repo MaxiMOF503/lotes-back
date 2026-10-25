@@ -23,6 +23,11 @@ public class EstadoService {
 	public static final String NO_DISPONIBLE = "NO_DISPONIBLE";
 	/** Capas sin las cuales las consultas del mapa no funcionan. */
 	static final List<String> CAPAS_REQUERIDAS = List.of("catastro", "aysam", "electricidad");
+	/**
+	 * Capas que una instalación al día tiene importadas. Las que no son requeridas (Aguas Luján) no impiden consultar,
+	 * pero si faltan se informan para que se ejecute el importador.
+	 */
+	static final List<String> CAPAS_ESPERADAS = List.of("catastro", "aysam", "aguas_lujan", "electricidad");
 	private static final Duration VIGENCIA_GEOREF = Duration.ofSeconds(60);
 
 	private final JdbcTemplate jdbc;
@@ -42,10 +47,10 @@ public class EstadoService {
 	public EstadoResponse estado() {
 		Instant ahora = reloj.instant();
 		if (!baseResponde()) {
-			return new EstadoResponse(NO_DISPONIBLE, ahora, NO_DISPONIBLE, null, "NO_VERIFICADO", List.of(), CAPAS_REQUERIDAS);
+			return new EstadoResponse(NO_DISPONIBLE, ahora, NO_DISPONIBLE, null, "NO_VERIFICADO", List.of(), CAPAS_ESPERADAS);
 		}
 		List<Capa> capas = capas();
-		List<String> faltantes = capas.stream().filter(c -> c.requerida() && !c.importada()).map(Capa::capa).toList();
+		List<String> faltantes = faltantes(capas);
 		boolean georefOk = georefDisponible();
 		String estado = faltantes.isEmpty() && georefOk ? OK : DEGRADADO;
 		return new EstadoResponse(estado, ahora, OK, versionDelEsquema(), georefOk ? "DISPONIBLE" : NO_DISPONIBLE, capas, faltantes);
@@ -69,13 +74,23 @@ public class EstadoService {
 		}
 	}
 
+	/** Capas esperadas que todavía no se importaron en esta base (no consulta Georef). */
+	public List<String> capasFaltantes() {
+		return faltantes(capas());
+	}
+
+	private static List<String> faltantes(List<Capa> capas) {
+		return CAPAS_ESPERADAS.stream()
+			.filter(nombre -> capas.stream().noneMatch(c -> c.capa().equals(nombre) && c.importada())).toList();
+	}
+
 	private List<Capa> capas() {
 		List<Fuente> fuentes = fuentesImportadas();
 		List<Capa> resultado = new ArrayList<>();
-		for (String requerida : CAPAS_REQUERIDAS) {
-			resultado.add(capa(requerida, true, fuentes));
+		for (String esperada : CAPAS_ESPERADAS) {
+			resultado.add(capa(esperada, CAPAS_REQUERIDAS.contains(esperada), fuentes));
 		}
-		fuentes.stream().map(Fuente::capa).filter(c -> !CAPAS_REQUERIDAS.contains(c))
+		fuentes.stream().map(Fuente::capa).filter(c -> !CAPAS_ESPERADAS.contains(c))
 			.forEach(c -> resultado.add(capa(c, false, fuentes)));
 		return resultado;
 	}

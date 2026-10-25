@@ -14,11 +14,15 @@ En Windows, con JDK 21, MySQL 8.0.18+, cliente MySQL y Python 3.10+ instalados:
 .\iniciar-local.cmd
 ```
 
-El asistente crea la base local, importa las tres capas reales incluidas en data/ y arranca el backend en localhost:8080. Pide las credenciales de MySQL de esa PC y el correo y la contraseña del administrador (mínimo 12 caracteres). No guarda contraseñas en archivos. Cada instalación tiene su propia base.
+El asistente crea la base local, importa las capas reales incluidas en data/ (catastro, agua de AySAM y de Aguas Luján, y electricidad) y arranca el backend en localhost:8080. Pide las credenciales de MySQL de esa PC y el correo y la contraseña del administrador (mínimo 12 caracteres). No guarda contraseñas en archivos. Cada instalación tiene su propia base.
 
 El [mapa territorial real](docs/datos-territoriales-reales.md) consulta parcelas catastrales, radio AYSAM y cercanía de tramos eléctricos. Expone procedencia y limitaciones: no confirma titularidad ni conexión de servicios.
 
 La aplicación no incluye lotes, cuentas ni datos de ejemplo: trabaja solo con las capas oficiales importadas. Si venís de una versión anterior, la migración V3 retira los datos de demostración (ver [migraciones](docs/migraciones-flyway.md)).
+
+## Después de actualizar el código (`git pull`)
+
+El código llega con `git pull`, pero **los datos de tu base no**: cuando el equipo suma o cambia una capa, ejecutá una vez `.\iniciar-local.cmd --preparar-solo` (o `py -3 scripts/importar_territorio.py` con tus variables `DB_*`). Es repetible y no duplica nada. El esquema (tablas) sí se actualiza solo al arrancar, con Flyway. Para comprobarlo, `GET /api/public/v1/estado` debe mostrar `capasFaltantes` vacío; si falta una capa, el log también lo avisa al arrancar. Los agentes de IA tienen sus instrucciones en [AGENTS.md](AGENTS.md).
 
 ## Ejecución manual
 

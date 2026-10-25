@@ -49,7 +49,7 @@ class EstadoServiceTest {
 	}
 
 	@Test void todoDisponibleEsOkYMuestraLaVersionDelEsquema() {
-		when(territorio.fuentes()).thenReturn(List.of(fuente("catastro"), fuente("aysam"), fuente("electricidad")));
+		when(territorio.fuentes()).thenReturn(List.of(fuente("catastro"), fuente("aysam"), fuente("aguas_lujan"), fuente("electricidad")));
 		georef.expect(requestTo("https://georef.test/api/provincias?max=1&campos=id")).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 		var estado = service.estado();
 		assertThat(estado.estado()).isEqualTo("OK");
@@ -57,11 +57,11 @@ class EstadoServiceTest {
 		assertThat(estado.esquema()).isEqualTo("3");
 		assertThat(estado.georef()).isEqualTo("DISPONIBLE");
 		assertThat(estado.capasFaltantes()).isEmpty();
-		assertThat(estado.capas()).extracting(c -> c.capa() + ":" + c.importada()).containsExactly("catastro:true", "aysam:true", "electricidad:true");
+		assertThat(estado.capas()).extracting(c -> c.capa() + ":" + c.importada()).containsExactly("catastro:true", "aysam:true", "aguas_lujan:true", "electricidad:true");
 	}
 
 	@Test void unaCapaSinImportarDejaElServicioDegradadoYLaNombra() {
-		when(territorio.fuentes()).thenReturn(List.of(fuente("catastro"), fuente("aysam")));
+		when(territorio.fuentes()).thenReturn(List.of(fuente("catastro"), fuente("aysam"), fuente("aguas_lujan")));
 		georef.expect(once(), requestTo(org.hamcrest.Matchers.containsString("/provincias"))).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 		var estado = service.estado();
 		assertThat(estado.estado()).isEqualTo("DEGRADADO");
@@ -77,7 +77,18 @@ class EstadoServiceTest {
 		georef.expect(requestTo(org.hamcrest.Matchers.containsString("/provincias"))).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 		var estado = service.estado();
 		assertThat(estado.estado()).isEqualTo("DEGRADADO");
-		assertThat(estado.capasFaltantes()).containsExactly("catastro", "aysam", "electricidad");
+		assertThat(estado.capasFaltantes()).containsExactly("catastro", "aysam", "aguas_lujan", "electricidad");
+	}
+
+	@Test void unaBaseImportadaAntesDeAguasLujanSigueConsultandoPeroLoAvisa() {
+		when(territorio.fuentes()).thenReturn(List.of(fuente("catastro"), fuente("aysam"), fuente("electricidad")));
+		georef.expect(requestTo(org.hamcrest.Matchers.containsString("/provincias"))).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+		var estado = service.estado();
+		assertThat(estado.estado()).isEqualTo("DEGRADADO");
+		assertThat(estado.capasFaltantes()).containsExactly("aguas_lujan");
+		assertThat(estado.capas()).filteredOn(c -> c.capa().equals("aguas_lujan")).singleElement()
+			.satisfies(c -> assertThat(c.requerida()).isFalse());
+		assertThat(service.capasFaltantes()).containsExactly("aguas_lujan");
 	}
 
 	@Test void georefCaidoDegradaPeroNoApagaElServicioYSeConsultaUnaVezPorMinuto() {

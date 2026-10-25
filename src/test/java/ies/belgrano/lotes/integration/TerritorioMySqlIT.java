@@ -22,6 +22,21 @@ class TerritorioMySqlIT {
         assertThat(result.electricidad().tipo()).isEqualTo("13.2 kV");
         assertThat(result.dentroRadioAgua()).isFalse();
     }
+    @Test void losDosRadiosDeAguaSeInformanPorSeparado() {
+        // El centro de Luján está en el radio de Aguas Luján y fuera del de AYSAM.
+        var centro=service.consultar(-33.0688,-68.8929);
+        assertThat(centro.dentroRadioAgua()).isFalse();
+        assertThat(centro.dentroRadioAguasLujan()).isTrue();
+        var ambos=service.consultar(-33.035,-68.925);
+        assertThat(ambos.dentroRadioAgua()).isTrue();
+        assertThat(ambos.dentroRadioAguasLujan()).isTrue();
+        var soloAysam=service.consultar(-33.05,-68.965);
+        assertThat(soloAysam.dentroRadioAgua()).isTrue();
+        assertThat(soloAysam.dentroRadioAguasLujan()).isFalse();
+        var ninguno=service.consultar(-33.14,-69.04);
+        assertThat(ninguno.dentroRadioAgua()).isFalse();
+        assertThat(ninguno.dentroRadioAguasLujan()).isFalse();
+    }
     @Test void puntoEnVerticeDelRadioDeAguaSeIncluyeEnLaCoberturaGeneral() {
         assertThat(service.consultar(-33.04570011,-68.92206571).dentroRadioAgua()).isTrue();
     }

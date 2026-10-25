@@ -18,5 +18,7 @@ public final class TerritorioResponse {
     public record Cercanas(double latitud, double longitud, int radioMetros, List<Cercana> parcelas) {}
     public record Consulta(double latitud, double longitud, List<Feature> parcelas,
                            boolean hayMasParcelas, boolean dentroRadioAgua,
+                           /** Radio de Aguas Luján; null si esa capa todavía no fue importada en esta base. */
+                           Boolean dentroRadioAguasLujan,
                            Electricidad electricidad, List<Fuente> fuentes, String advertencia) {}
 }
