@@ -2,6 +2,7 @@
 Python 3.10+ y cliente mysql 8.0.18+. Credenciales en DB_* (no argumentos).
 """
 import argparse
+from collections import Counter
 import gzip
 import hashlib
 import json
@@ -34,6 +35,13 @@ DATASETS = {
 # antes de importar aunque el backend todavia no haya arrancado o la base ya tenga las tablas.
 MIGRACION_TERRITORIO = ROOT / "src" / "main" / "resources" / "db" / "migration" / "V2__capas_territoriales.sql"
 SCHEMA = MIGRACION_TERRITORIO.read_text(encoding="utf-8")
+MIGRACION_CLASIFICACION = MIGRACION_TERRITORIO.with_name("V5__clasificar_duplicados_catastrales.sql")
+SCHEMA += "\n" + MIGRACION_CLASIFICACION.read_text(encoding="utf-8")
+# fid identifica una fila del exportador, no un atributo territorial. Ningún otro
+# campo se ignora (incluidos id_ev, id_bp y todos los retiros).
+CAMPOS_TECNICOS = frozenset({"fid"})
+DUPLICADO_IDENTICO = "DUPLICADO_IDENTICO"
+CONFLICTO_ATRIBUTOS = "CONFLICTO_ATRIBUTOS"
 ESCAPES = {ord("0"): 0, ord("n"): 10, ord("r"): 13, ord("b"): 8,
            ord("t"): 9, ord("Z"): 26}
 ROW = re.compile(rb"\((\d+),'((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)'\)", re.S)
@@ -88,11 +96,27 @@ def read_geojson(path):
         yield key, expression, props
 
 def copias_exactas(features):
-    """Devuelve {copia: original} para parcelas repetidas con la misma nomenclatura y geometría.
+    """Compatibilidad: coincidencia geométrica, no necesariamente igualdad de atributos."""
+    return {copia: dato["representante"] for copia, dato in clasificar_coincidencias(features).items()}
 
-    La fuente municipal publica algunas parcelas varias veces. Se conserva la primera
-    aparición y no se borran las copias: fichas, consultas guardadas e historial
-    pueden referirse a cualquiera de ellas por su origen_id.
+
+def valor_estructural(valor):
+    # JSON ordenado, sin trim ni conversiones: distingue null/ausencia, bool/número,
+    # cadenas/números y el orden de arrays; el orden de claves no afecta.
+    return json.dumps(valor, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+
+
+def campos_diferentes(original, copia):
+    return sorted(campo for campo in (original.keys() | copia.keys()) - CAMPOS_TECNICOS
+                  if campo not in original or campo not in copia
+                  or valor_estructural(original[campo]) != valor_estructural(copia[campo]))
+
+
+def clasificar_coincidencias(features):
+    """Mismo grupo y representante que antes; cada copia se compara con el primero.
+
+    No modifica propiedades ni elige un valor verdadero. El grupo es conflictivo
+    si alguna copia difiere, aunque otras sean idénticas al representante.
     """
     originales, copias = {}, {}
     for key, geometry, props in features:
@@ -100,10 +124,32 @@ def copias_exactas(features):
             continue
         clave = (props.get("nomenclatu") or "", json.dumps(geometry, separators=(",", ":"), sort_keys=True))
         if clave in originales:
-            copias[key] = originales[clave]
+            representante, propiedades = originales[clave]
+            campos = campos_diferentes(propiedades, props)
+            copias[key] = {"representante": representante,
+                           "tipo": CONFLICTO_ATRIBUTOS if campos else DUPLICADO_IDENTICO,
+                           "campos": campos}
         else:
-            originales[clave] = key
+            originales[clave] = (key, props)
     return copias
+
+
+def resumen_coincidencias(clasificacion):
+    grupos, campos = {}, Counter()
+    for dato in clasificacion.values():
+        grupo = grupos.setdefault(dato["representante"], {"copias": 0, "campos": set()})
+        grupo["copias"] += 1
+        grupo["campos"].update(dato["campos"])
+    for grupo in grupos.values():
+        campos.update(grupo["campos"])
+    conflictos = [g for g in grupos.values() if g["campos"]]
+    return {"grupos_coincidentes": len(grupos), "grupos_identicos": len(grupos) - len(conflictos),
+            "grupos_conflictivos": len(conflictos), "copias_identicas": sum(
+                d["tipo"] == DUPLICADO_IDENTICO for d in clasificacion.values()),
+            "copias_conflictivas": sum(d["tipo"] == CONFLICTO_ATRIBUTOS for d in clasificacion.values()),
+            "registros_involucrados": len(grupos) + len(clasificacion),
+            "registros_en_grupos_conflictivos": sum(g["copias"] + 1 for g in conflictos),
+            "campos_conflictivos_por_grupo": dict(sorted(campos.items(), key=lambda p: (-p[1], p[0])))}
 
 def read_geojson_geometrias(path):
     opener = gzip.open if path.suffix == ".gz" else open
@@ -113,23 +159,39 @@ def read_geojson_geometrias(path):
         props = feature.get("properties") or {}
         yield str(feature.get("id") or props.get("fid") or props.get("id")), feature["geometry"], props
 
+def sql_clasificacion(clasificacion, layer="catastro"):
+    if layer != "catastro":
+        raise ValueError("La clasificación de duplicados solo corresponde a catastro")
+    sql = ["START TRANSACTION;"]
+    # Solo registros de esta importación; no reconcilia versiones ni toca filas
+    # ausentes del archivo actual (esa política corresponde a #50).
+    filas = {}
+    for copia, dato in clasificacion.items():
+        filas.setdefault(dato["representante"], (None, None, None))
+        filas[copia] = (dato["representante"], dato["tipo"], dato["campos"])
+    pares = sorted(filas.items())
+    for inicio in range(0, len(pares), 200):
+        lote = pares[inicio:inicio + 200]
+        asignaciones = []
+        for posicion, columna in enumerate(("duplicado_de", "tipo_duplicado", "campos_conflicto")):
+            casos = " ".join("WHEN " + sql_text(key) + " THEN " + (
+                "NULL" if valores[posicion] is None else sql_text(
+                    json.dumps(valores[posicion], ensure_ascii=False) if posicion == 2 else valores[posicion]))
+                for key, valores in lote)
+            asignaciones.append(columna + "=CASE origen_id " + casos + " END")
+        claves = ",".join(sql_text(key) for key, _ in lote)
+        sql.append("UPDATE territorio_elementos SET " + ",".join(asignaciones)
+                   + " WHERE capa=" + sql_text(layer) + " AND origen_id IN (" + claves + ");")
+    sql.append("COMMIT;")
+    return "\n".join(sql)
+
+
 def marcar_copias(layer):
     """Idempotente: se ejecuta en cada importación del catastro, aunque el archivo no cambie."""
     path = ROOT / "data" / DATASETS[layer][0]
-    copias = copias_exactas(read_geojson_geometrias(path))
-    sql = ["START TRANSACTION;",
-           "UPDATE territorio_elementos SET duplicado_de=NULL WHERE capa=" + sql_text(layer) + ";"]
-    pares = sorted(copias.items())
-    for inicio in range(0, len(pares), 200):
-        casos = " ".join("WHEN " + sql_text(copia) + " THEN " + sql_text(original)
-                         for copia, original in pares[inicio:inicio + 200])
-        claves = ",".join(sql_text(copia) for copia, _ in pares[inicio:inicio + 200])
-        sql.append("UPDATE territorio_elementos SET duplicado_de=CASE origen_id " + casos
-                   + " END WHERE capa=" + sql_text(layer) + " AND origen_id IN (" + claves + ");")
-    sql.append("COMMIT;")
-    mysql("\n".join(sql))
-    print(f"{layer}: {len(copias)} copias exactas marcadas en {len(set(copias.values()))} parcelas "
-          "(se ocultan en el mapa y la búsqueda; no se borran).", flush=True)
+    clasificacion = clasificar_coincidencias(read_geojson_geometrias(path))
+    mysql(sql_clasificacion(clasificacion, layer))
+    print(json.dumps(resumen_coincidencias(clasificacion), ensure_ascii=False), flush=True)
 
 def mysql_command():
     jdbc = os.environ.get("DB_URL", "")
@@ -222,7 +284,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capa", choices=list(DATASETS))
     parser.add_argument("--forzar", action="store_true", help="Reimportar aun con el mismo SHA256")
+    parser.add_argument("--analizar-coincidencias", action="store_true",
+                        help="Analizar el archivo catastral sin conectarse a MySQL ni escribir datos")
     args = parser.parse_args()
+    if args.analizar_coincidencias:
+        clasificacion = clasificar_coincidencias(read_geojson_geometrias(ROOT / "data" / DATASETS["catastro"][0]))
+        print(json.dumps(resumen_coincidencias(clasificacion), ensure_ascii=False, indent=2))
+        return
     mysql(SCHEMA)
     for layer in [args.capa] if args.capa else DATASETS:
         import_layer(layer, args.forzar)

@@ -4,6 +4,10 @@ Se conectan los archivos existentes de `data/` a MySQL y al mapa actual. No se c
 
 ## Qué está integrado
 
+La clasificación de atributos de las copias se explica en
+[clasificación de duplicados catastrales](clasificacion-duplicados-catastrales.md).
+Compartir geometría y nomenclatura no implica tener atributos idénticos.
+
 - **Catastro municipal:** 65.756 registros. 65.731 contienen geometría; 110 de esas geometrías son inválidas según MySQL. Las consultas precisas y las capas muestran las 65.621 geometrías válidas. Los 25 registros sin geometría se conservan en una tabla aparte.
 - **Electricidad:** 13.494 tramos EDEMSA (el 13.495 del README original corresponde al siguiente AUTO_INCREMENT). Se muestra la traza y el tramo más cercano **hasta 1.000 metros** del punto consultado, con distancia geodésica WGS84. No confirma acometida, potencia disponible ni factibilidad.
 - **Agua:** dos polígonos del radio general de AYSAM y tres del radio de Aguas Luján (operador municipal, zonas SUR, NORTE y OESTE). Un punto dentro o en el límite pertenece al radio publicado. Los dos operadores se informan por separado: el centro de Luján, por ejemplo, está dentro del radio de Aguas Luján y fuera del de AYSAM. Estar fuera de un radio no significa carecer de agua: puede haber otros operadores. No se dispone de cañerías calle por calle. Una base importada antes de sumar Aguas Luján sigue funcionando: ese radio figura como sin dato (`dentroRadioAguasLujan: null`) hasta ejecutar el importador.
