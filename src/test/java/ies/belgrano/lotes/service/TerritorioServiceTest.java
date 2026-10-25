@@ -56,9 +56,26 @@ class TerritorioServiceTest {
         Consulta result=service.consultar(-33,-68.9);
         assertThat(result.parcelas()).isEmpty();
         assertThat(result.dentroRadioAgua()).isFalse();
+        assertThat(result.dentroRadioAguasLujan()).isNull();
         assertThat(result.electricidad().distanciaMetros()).isNull();
-        verify(repository).dentroAgua("POINT(-68.9 -33.0)");
+        verify(repository).dentroRadio("aysam","POINT(-68.9 -33.0)");
+        verify(repository,never()).dentroRadio(eq("aguas_lujan"),anyString());
         assertThat(result.advertencia()).contains("no confirman una conexión");
+    }
+    @Test void conAguasLujanImportadaInformaSuRadioAparte() {
+        when(repository.fuentes()).thenReturn(List.of(fuente("catastro"),fuente("aysam"),fuente("aguas_lujan"),fuente("electricidad")));
+        when(repository.parcelas(anyString(),eq(6))).thenReturn(List.of());
+        when(repository.dentroRadio("aysam","POINT(-68.9 -33.0)")).thenReturn(false);
+        when(repository.dentroRadio("aguas_lujan","POINT(-68.9 -33.0)")).thenReturn(true);
+        when(repository.electricidad(anyString(),anyString(),eq(1000))).thenReturn(new Electricidad(null,null,1000,"Sin tramo"));
+        Consulta result=service.consultar(-33,-68.9);
+        assertThat(result.dentroRadioAgua()).isFalse();
+        assertThat(result.dentroRadioAguasLujan()).isTrue();
+    }
+    @Test void laCapaAguasLujanSePuedePedirAlMapa() {
+        when(repository.fuentes()).thenReturn(List.of(fuente("aguas_lujan")));
+        when(repository.ventana(eq("aguas_lujan"),anyString(),eq(501))).thenReturn(List.of());
+        assertThat(service.capa("aguas_lujan",-68.95,-33.1,-68.8,-33.0,11,500).acercar()).isFalse();
     }
     @Test void cercanasRechazaRadiosFueraDeRangoSinConsultarLaBase() {
         assertThatThrownBy(() -> service.cercanas(-33.03,-68.87,4)).isInstanceOf(OperacionInvalidaException.class);

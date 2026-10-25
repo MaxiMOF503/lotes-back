@@ -6,7 +6,7 @@ Se conectan los archivos existentes de `data/` a MySQL y al mapa actual. No se c
 
 - **Catastro municipal:** 65.756 registros. 65.731 contienen geometría; 110 de esas geometrías son inválidas según MySQL. Las consultas precisas y las capas muestran las 65.621 geometrías válidas. Los 25 registros sin geometría se conservan en una tabla aparte.
 - **Electricidad:** 13.494 tramos EDEMSA (el 13.495 del README original corresponde al siguiente AUTO_INCREMENT). Se muestra la traza y el tramo más cercano **hasta 1.000 metros** del punto consultado, con distancia geodésica WGS84. No confirma acometida, potencia disponible ni factibilidad.
-- **Agua:** dos polígonos del radio general de AYSAM. Un punto dentro o en el límite pertenece al radio publicado. Estar fuera no significa carecer de agua: puede haber otros operadores. No se dispone de cañerías calle por calle.
+- **Agua:** dos polígonos del radio general de AYSAM y tres del radio de Aguas Luján (operador municipal, zonas SUR, NORTE y OESTE). Un punto dentro o en el límite pertenece al radio publicado. Los dos operadores se informan por separado: el centro de Luján, por ejemplo, está dentro del radio de Aguas Luján y fuera del de AYSAM. Estar fuera de un radio no significa carecer de agua: puede haber otros operadores. No se dispone de cañerías calle por calle. Una base importada antes de sumar Aguas Luján sigue funcionando: ese radio figura como sin dato (`dentroRadioAguasLujan: null`) hasta ejecutar el importador.
 
 **Parcelas repetidas en la fuente:** el archivo municipal publica 94 parcelas más de una vez con la misma nomenclatura y la misma geometría (605 copias en total; por ejemplo, `060103004400002700000` aparece 8 veces). El importador conserva la primera aparición y marca las demás en la columna `duplicado_de` con el `origen_id` original. El clic en el mapa, la capa de parcelas y la búsqueda por nomenclatura ocultan las copias. No se borran: `GET /parcelas/{id}` las sigue resolviendo, porque fichas, consultas guardadas e historial pueden referirse a cualquiera de ellas. Parcelas con la misma nomenclatura pero distinta geometría no se consideran copias.
 
@@ -26,7 +26,7 @@ Desde la raíz del backend:
 py -3 scripts/importar_territorio.py
 ```
 
-Se crean `territorio_elementos`, `territorio_sin_geometria` y `territorio_fuentes` con la migración `V2__capas_territoriales.sql` de Flyway, que el importador ejecuta antes de cargar (una sola definición; ver [migraciones](migraciones-flyway.md)). Hay índice espacial, claves de origen y propiedades JSON. Cada capa se carga en una transacción. Repetir la ejecución reconoce el SHA256 y no duplica datos. `--capa catastro`, `--capa electricidad` o `--capa aysam` permiten importar una capa; `--forzar` reimporta el mismo archivo.
+Se crean `territorio_elementos`, `territorio_sin_geometria` y `territorio_fuentes` con la migración `V2__capas_territoriales.sql` de Flyway, que el importador ejecuta antes de cargar (una sola definición; ver [migraciones](migraciones-flyway.md)). Hay índice espacial, claves de origen y propiedades JSON. Cada capa se carga en una transacción. Repetir la ejecución reconoce el SHA256 y no duplica datos. `--capa catastro`, `--capa electricidad`, `--capa aysam` o `--capa aguas_lujan` permiten importar una capa; `--forzar` reimporta el mismo archivo.
 
 En cada ejecución sobre el catastro se vuelven a marcar las copias exactas, aunque el archivo no haya cambiado (tarda unos segundos). **Si tu base ya estaba importada antes de este cambio**, alcanza con iniciar como siempre (`.\iniciar-local.cmd`) o correr `py -3 scripts/importar_territorio.py --capa catastro` una vez y reiniciar el backend: se agrega la columna `duplicado_de` (migración V2) y se marcan las copias sin reimportar. Mientras no se ejecute, el backend sigue funcionando como antes (sin ocultar copias).
 
@@ -52,7 +52,7 @@ No hay datos ficticios: la aplicación no inserta lotes, cuentas ni líneas de e
 ## API adicional (pública)
 
 - `GET /api/public/v1/territorio/fuentes`: fuentes, recuentos, calidad y fecha de importación.
-- `GET /api/public/v1/territorio/capas/{catastro|electricidad|aysam}?oeste=-68.9&sur=-33.074&este=-68.888&norte=-33.065&zoom=16&limite=500`: FeatureCollection, `hayMas`, `acercar`, fuente y mensaje. Límite máximo 1.000.
+- `GET /api/public/v1/territorio/capas/{catastro|electricidad|aysam|aguas_lujan}?oeste=-68.9&sur=-33.074&este=-68.888&norte=-33.065&zoom=16&limite=500`: FeatureCollection, `hayMas`, `acercar`, fuente y mensaje. Límite máximo 1.000.
 - `GET /api/public/v1/territorio/consulta?latitud=-33.0688&longitud=-68.8929`: hasta cinco parcelas coincidentes (incluye límites), radio de agua y distancia eléctrica.
 - `GET /api/public/v1/territorio/direcciones?texto=San Martín 1500`: direcciones normalizadas por Georef (calle y número, o `calle esquina calle`) con su ubicación aproximada, más las direcciones relevadas por el equipo en las fichas complementarias (origen `FICHA`, con su parcela).
 - `GET /api/public/v1/territorio/parcelas/cercanas?latitud=-33.02626&longitud=-68.87491&radio=30`: parcelas a menos de `radio` metros (5 a 100, por defecto 30), de la más cercana a la más lejana, sin copias repetidas.

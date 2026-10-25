@@ -46,6 +46,13 @@ class ImportadorTest(unittest.TestCase):
         self.assertIn("duplicado_de", importer.SCHEMA)
         self.assertNotIn("DROP ", importer.SCHEMA.upper())
 
+    def test_aguas_lujan_se_importa_con_sus_tres_zonas(self):
+        rows = list(importer.read_geojson(importer.ROOT / "data" / importer.DATASETS["aguas_lujan"][0]))
+        self.assertEqual(len(rows), importer.DATASETS["aguas_lujan"][1])
+        self.assertEqual(sorted(props["zona"] for _, _, props in rows), ["NORTE", "OESTE", "SUR"])
+        self.assertTrue(all(geometry.startswith("ST_GeomFromGeoJSON(") for _, geometry, _ in rows))
+        self.assertLessEqual(len("aguas_lujan"), 24)  # largo de territorio_elementos.capa
+
     def test_escapes_no_alteran_binario_ni_acentos(self):
         self.assertEqual(importer.unescape(b"\\0\\n\\r\\b\\t\\Z\\\\\\'"), bytes([0,10,13,8,9,26,92,39]))
         self.assertEqual(importer.sql_text("Luján"), "CONVERT(0x4c756ac3a16e USING utf8mb4)")

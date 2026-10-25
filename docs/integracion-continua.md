@@ -17,7 +17,7 @@ Esto compila, ejecuta los tests habituales, empaqueta el JAR y verifica los scri
 
 El segundo trabajo crea un servicio descartable MySQL 8 con dos bases:
 
-- `verificador_lotes`: recibe las tres capas reales incluidas en `data/` y ejecuta las pruebas territoriales, de Mi espacio e historial.
+- `verificador_lotes`: recibe las capas reales incluidas en `data/` y ejecuta las pruebas territoriales, de Mi espacio e historial.
 - `lotes_flyway_test`: la usa `MigracionesFlywayMySqlIT`, que la vacía y prueba las migraciones de [Flyway](migraciones-flyway.md) sobre una base nueva, sobre una instalación existente y la limpieza de datos demo.
 
 Las credenciales declaradas en el workflow existen solo durante esa ejecución. No corresponden a ninguna instalación del equipo.

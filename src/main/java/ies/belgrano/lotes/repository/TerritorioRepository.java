@@ -48,11 +48,12 @@ public class TerritorioRepository {
             """, punto, punto, limite);
     }
 
-    public boolean dentroAgua(String punto) {
+    /** Si el punto está dentro (o en el borde) de algún polígono válido de la capa de radio de servicio. */
+    public boolean dentroRadio(String capa, String punto) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""
-            SELECT EXISTS(SELECT 1 FROM territorio_elementos WHERE capa='aysam' AND valida=TRUE
+            SELECT EXISTS(SELECT 1 FROM territorio_elementos WHERE capa=? AND valida=TRUE
               AND ST_Intersects(geometria,ST_GeomFromText(?,4326,'axis-order=long-lat')))
-            """, Boolean.class, punto));
+            """, Boolean.class, capa, punto));
     }
 
     public Electricidad electricidad(String punto, String bounds, int radio) {

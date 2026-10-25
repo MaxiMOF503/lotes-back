@@ -76,6 +76,7 @@ Los 503 de dependencia o de base indican que el servicio sigue en pie pero no pu
   "capas": [
     {"capa": "catastro", "requerida": true, "importada": true, "registros": 65756, "importadoEn": "2026-10-20 10:15:00"},
     {"capa": "aysam", "requerida": true, "importada": true, "registros": 2, "importadoEn": "2026-10-20 10:15:02"},
+    {"capa": "aguas_lujan", "requerida": false, "importada": true, "registros": 3, "importadoEn": "2026-10-24 16:38:13"},
     {"capa": "electricidad", "requerida": true, "importada": false, "registros": null, "importadoEn": null}
   ],
   "capasFaltantes": ["electricidad"]
@@ -90,7 +91,7 @@ Los 503 de dependencia o de base indican que el servicio sigue en pie pero no pu
 
 - `esquema` es la última versión de migración aplicada (ver [migraciones](migraciones-flyway.md)).
 - Georef es un servicio externo: se verifica como máximo una vez por minuto, con tiempos de espera cortos.
-- Las capas requeridas son `catastro`, `aysam` y `electricidad`. Si falta alguna, el diagnóstico la nombra en `capasFaltantes`; se carga con `scripts/importar_territorio.py` o `iniciar-local.cmd --preparar-solo`.
+- Las capas requeridas para consultar son `catastro`, `aysam` y `electricidad`. `aguas_lujan` es esperada pero no requerida: sin ella las consultas siguen funcionando (ese radio figura sin dato). Cualquier capa esperada que falte se nombra en `capasFaltantes` y deja el estado en `DEGRADADO`; se carga con `scripts/importar_territorio.py` o `iniciar-local.cmd --preparar-solo`. Al arrancar, el log también avisa.
 
 ## Registro (log)
 

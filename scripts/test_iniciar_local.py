@@ -26,7 +26,7 @@ class ArranqueLocalTest(unittest.TestCase):
              patch.object(launcher.importer, "mysql"), patch.object(launcher.importer, "import_layer") as layer, \
              patch.object(launcher, "password_cuenta") as password, patch.object(launcher.subprocess, "run") as run:
             launcher.main()
-            self.assertEqual(layer.call_count, 3)
+            self.assertEqual(layer.call_count, len(launcher.importer.DATASETS))
             port.assert_not_called()
             password.assert_not_called()
             run.assert_not_called()

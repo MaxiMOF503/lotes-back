@@ -2,9 +2,9 @@
 
 Esta carpeta reúne material de referencia recopilado de fuentes públicas
 para Luján de Cuyo, pensado para alimentar futuras entidades/consultas del
-backend. **No está integrado a la aplicación todavía**: `DatosDemostrativosInitializer`
-sigue cargando únicamente el dataset demostrativo mínimo (B-01). Nada de lo
-que hay acá se ejecuta automáticamente al levantar la app.
+backend. Solo `catastro-parcelas/`, `aysam-agua/`, `aguas-lujan/` y `lineas-electricas/`
+se cargan en la aplicación (con `scripts/importar_territorio.py`); el resto sigue siendo
+material de referencia. Nada de lo que hay acá se ejecuta al levantar la app.
 
 ## Estado por tema
 
@@ -14,6 +14,7 @@ que hay acá se ejecuta automáticamente al levantar la app.
 | `zonificacion/` | Completo | 143 zonas del Código de Ordenamiento Territorial (Ordenanza 14106-2021) |
 | `zonas-pluviales/` | Completo (geometría) | 84 polígonos de riesgo aluvional — geometría válida, atributos de texto no confiables |
 | `aysam-agua/` | Completo (aproximado) | Solo 2 polígonos de radio de servicio general, no traza de red calle por calle |
+| `aguas-lujan/` | Completo (aproximado) | 3 polígonos (SUR, NORTE, OESTE) del radio de servicio del operador municipal Aguas Luján, también sin traza de red |
 | `loteos-definitivos/` | Completo | 731 loteos/barrios con situación dominial (público/privado) y de regularización |
 | `catastro-parcelas/` | Completo | 65.756 parcelas individuales (comprimido en `.gz` por tamaño) |
 | `asentamientos-renabap/` | Completo | 33 barrios populares (fuente nacional RENABAP, no municipal) |

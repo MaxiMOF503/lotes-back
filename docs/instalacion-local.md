@@ -40,7 +40,7 @@ cd C:\LoteSeguro\lotes-back
 
 El asistente pide el usuario de MySQL (por defecto root), la contraseña de MySQL de esa PC y el correo y la contraseña del administrador. Las contraseñas no se muestran mientras se escriben.
 
-Crea la base `verificador_lotes` si falta, importa las tres capas territoriales y ejecuta Spring Boot. El primer arranque puede tardar varios minutos. Esperar el mensaje `Started LotesApplication` y mantener esta terminal abierta.
+Crea la base `verificador_lotes` si falta, importa las capas territoriales y ejecuta Spring Boot. El primer arranque puede tardar varios minutos. Esperar el mensaje `Started LotesApplication` y mantener esta terminal abierta.
 
 La contraseña del administrador debe tener al menos 12 caracteres y como máximo 72 bytes UTF-8. No hay cuentas ni contraseñas publicadas. Los accesos son:
 
@@ -93,7 +93,7 @@ Mantener las dos terminales abiertas. Para detener cada servidor, presionar Ctrl
 
 El buscador por nomenclatura consulta el catastro importado. El buscador por dirección usa calles reales de Georef y muestra las parcelas cercanas al punto aproximado para que elijas la tuya: la fuente catastral no trae domicilios fiables.
 
-Las capas importadas contienen 65.756 registros catastrales: 65.621 geometrías válidas, 110 inválidas y 25 sin geometría. También contienen 13.494 tramos eléctricos y 2 polígonos de radio AYSAM. Los registros sin geometría válida se conservan para revisión, pero no se dibujan ni se usan para identificar parcelas.
+Las capas importadas contienen 65.756 registros catastrales: 65.621 geometrías válidas, 110 inválidas y 25 sin geometría. También contienen 13.494 tramos eléctricos, 2 polígonos de radio AYSAM y 3 de radio Aguas Luján. Los registros sin geometría válida se conservan para revisión, pero no se dibujan ni se usan para identificar parcelas.
 
 Son capturas de las fuentes indicadas, no una conexión en vivo a los organismos. El radio AYSAM no confirma conexión de agua; la cercanía a una línea eléctrica no acredita factibilidad de suministro. Tampoco se acredita titularidad o situación legal. Ver [datos territoriales y limitaciones](datos-territoriales-reales.md).
 
